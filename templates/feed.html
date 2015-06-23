@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Feed</title>
+</head>
+<body>
+	<h2>Your feedpage // {{display_name}} //</h2>
+	<a href="{{status_url}}">Logout</a>
+	
+	{% if groups_joined %}
+		<h4>Groups joined</h4>
+		<ul>
+			{% for group in groups_joined %}
+				<li>{{group.name}}</li>
+			{% endfor %}
+		</ul>
+	{% else %}
+		<h4>No groups joined yet</h4>
+	{% endif %}
+
+	{% if notifications %}
+		<h4>Notifications</h4>
+		<ul>
+			{% for nt in notifications %}
+				<li>{{nt.poster_name}} posted in {{nt.group_name}} --- {{nt.timestamp}} ago</li>
+			{% endfor %}
+		</ul>
+	{% else %}
+		<h4>No Notifications</h4>
+	{% endif %}
+</body>
+</html>

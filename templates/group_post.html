@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Group Post</title>
+</head>
+<body>
+	<h2>post in {{group_id}}</h2>
+
+	<form action="/post-group/{{group_id}}" method="POST">
+		<textarea name="user_post" id="" cols="30" rows="10"></textarea>
+		<input type="submit" value="POST">
+	</form>
+	<div>{{error}}</div>
+</body>
+</html>

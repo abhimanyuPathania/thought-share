@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Profile</title>
+</head>
+<body>
+	<h2>Profile page</h2>
+	
+	<p>Display Name: {{display_name}}</p>
+	<p>email: {{email}} (fetched from the connected google account)</p>
+	{% if user_image_url %}
+		<p>Display picture: <img src="{{user_image_url}}"></p>
+		<p>thumbnail: <img src="{{user_thumbnail_url}}"></p>
+	{% else %}
+		<p>Display picture: None uploaded</p>
+	{% endif %}
+	<a href="/edit-profile">Edit Profile</a>
+</body>
+</html>

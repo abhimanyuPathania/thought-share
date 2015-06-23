@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>create group</title>
+</head>
+<body>
+	<h2>create new group</h2>
+	<form method="POST" action="{{form_action}}" enctype="multipart/form-data">
+		<div>
+			<label for="">Group name</label>
+			<input type="text" name="name" id="" value="{{name}}">
+		</div>
+		<div>
+			<label for="">Group description</label>
+			<textarea name="description" id="" cols="30" rows="10">{{description}}</textarea>
+		</div>
+		<div>
+			<label for="">Cover image</label>
+			<input type="file" name="file" value="Select">
+		</div>
+		<div>
+			<label for="">Make private(leave unchecked for public groups):</label>
+			<input type="checkbox" name="private">
+		</div>
+		<div>
+			<input type="submit" value="Create!">
+		</div>
+		<div>
+			{{error}}
+		</div>
+	</form>
+</body>
+</html>

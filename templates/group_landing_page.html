@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Group landing page</title>
+</head>
+<body>
+	<h2>{{group_name}}</h2>
+	<p>{{group_description}}</p>
+	{% if group_cover_image %}
+		<p><img src="{{group_cover_image}}" alt=""></p>
+	{% endif %}
+
+	{% if member %}
+
+		<form action="/leave-group/{{group_id}}" method="GET">
+			<input type="submit" value="Leave Group">
+		</form>
+		<a href="/post-group/{{group_id}}">Post in this group</a>
+
+		{% if private %}
+			<form action="/admin-group/{{group_id}}" method="POST">
+				<input type="submit" value="Request Adminship">
+			</form>
+		{%  endif %}
+
+	{% else %}
+
+		<form action="/join-group/{{group_id}}" method="GET">
+			<input type="submit" value="Join Group">
+		</form>
+
+	{% endif %}
+	
+	{% if group_posts %}
+		<h4>Recents posts in this group</h4>
+		<ul>
+			{% for post in group_posts %}
+				<li>{{post.post}}</li>
+			{% endfor %}
+		</ul>
+	{% else %}
+		<h4>No posts in this group yet. Be the first one to post!</h4>
+	{% endif %}
+</body>
+</html>
