@@ -65,12 +65,25 @@ class User(ndb.Model):
 			return True
 
 class PrivateRequest(ndb.Model):
-	group_key = ndb.KeyProperty(required = True)
+	#redundant information here save multiple datastore queries
+	#since private request are going to be fetched over ajax polling
+
+	#group info
+	group_key = ndb.KeyProperty(required = True, indexed = True)
+	group_name = ndb.StringProperty(required = True, indexed = False)
+	group_image = ndb.StringProperty(indexed = False)
 	group_admins = ndb.KeyProperty(repeated = True, indexed = True)
-	user_key = ndb.KeyProperty(required = True)
-	request_hash = ndb.StringProperty(required = True)
-	complete = ndb.BooleanProperty(default = False)
-	request_type = ndb.StringProperty(required = True, indexed = False)
+
+	#user info
+	user_key = ndb.KeyProperty(required = True, indexed = True)
+	user_name = ndb.StringProperty(required = True, indexed = False)
+	user_image = ndb.StringProperty(indexed = False)
+
+	#request info
+	request_hash = ndb.StringProperty(required = True, indexed = True)
+	complete = ndb.BooleanProperty(default = False, indexed = True)
+	request_type = ndb.StringProperty(required = True, indexed = True)
+	timestamp = ndb.IntegerProperty(required = True, indexed = True)
 
 	@classmethod
 	def raise_request(cls, group, user, request_type):
@@ -78,23 +91,31 @@ class PrivateRequest(ndb.Model):
 		id_hash = hashlib.md5(str(request_id)).hexdigest()
 		new_request = PrivateRequest(id = request_id,
 										group_key = group.key,
+										group_name = group.name,
+										group_image = group.cover_image_thumbnail,
 										group_admins = group.admins,
 										user_key = user.key,
+										user_name = (user.display_name or user.email),
+										user_image = user.thumbnail_url,
 										request_hash = id_hash,
-										request_type = request_type)
+										request_type = request_type,
+										timestamp = int(time.time()))
 		new_request.put()
 		return True
 
+	#put this in a transaction
 	@classmethod
 	def complete_request(cls, admin_id, request_hash):
 		req = PrivateRequest.query(PrivateRequest.request_hash == request_hash).get()
 
 		if req:
 			admin_key = ndb.Key(User, admin_id)
-			if admin_key in req.group_admins:
 
-				target_user = req.user_key.get()
-				target_group = req.group_key.get()
+			#only go further if user(logged-in; fulfilling the req) is a group admin
+			if admin_key in req.group_admins:
+				target_user_and_group = ndb.get_multi([req.user_key, req.group_key])
+				target_user = target_user_and_group[0]
+				target_group = target_user_and_group[1]
 
 				if req.request_type == 'join':
 					#add group key to User groups
@@ -106,30 +127,37 @@ class PrivateRequest(ndb.Model):
 					#set the complete flag on request
 					req.complete = True
 
-					target_user.put()
-					target_group.put()
-					req.put()
+					ndb.put_multi([target_user, target_group, req])
 					return True
 
 				if req.request_type == 'admin':
+					#again checking if target_user is a member and not an admin already
 					if req.user_key in target_group.members and req.user_key not in target_group.admins:
 						target_group.admins.append(req.user_key)
 						req.complete = True
 
-						target_group.put()
-						req.put()
+						ndb.put_multi([target_group, req])
 						return True
 		
 		#return false otherwise 
 		return False
 
 	@classmethod
-	def fetch_notifications(cls, user_id):
-		#user_id of the user logged in the app fetching notifications if any
-		user_key = ndb.Key(User, user_id)
-		notifications = PrivateRequest.query(PrivateRequest.group_admins == user_key, PrivateRequest.complete == False).fetch()
+	def fetch_notifications(cls, user_key):
+		#user_key of the user logged-in in the app fetching notifications if any
+		q = PrivateRequest.query(ndb.AND(PrivateRequest.complete == False,
+										 PrivateRequest.group_admins == user_key))
+		notifications = q.order(-PrivateRequest.timestamp).fetch()
 		return notifications
 
+	@classmethod
+	def test_existing_request(cls, user_key, group_key, request_type):
+		q = PrivateRequest.query(ndb.AND(PrivateRequest.user_key == user_key,
+										 PrivateRequest.group_key == group_key,
+										 PrivateRequest.complete == False,
+										 PrivateRequest.request_type == request_type))
+		req = q.get()
+		return req
 
 class Group(ndb.Model):
 	name = ndb.StringProperty(required = True)
@@ -194,14 +222,21 @@ class Group(ndb.Model):
 
 	@classmethod
 	def join_group(cls, user_key, group_key):
-		user = user_key.get()
-		group = group_key.get()
+		user_and_group = ndb.get_multi([user_key, group_key])
+		user = user_and_group[0]
+		group = user_and_group[1]
 
 		if group_key in user.groups:
 			return False
 		
 		if group.private:
+			#check for already existing request
+			test = PrivateRequest.test_existing_request(user_key, group_key, 'join')
+			if test:
+				return False
+
 			PrivateRequest.raise_request(group, user, 'join')
+			return True
 		else:
 			#add group key to User's groups list
 			user.groups.append(group_key)
@@ -209,33 +244,32 @@ class Group(ndb.Model):
 			#add user key to Group members
 			group.members.append(user_key)
 
-			user.put()
-			group.put()
+			ndb.put_multi([user, group])
 			return True
 
 	@classmethod
 	def leave_group(cls, user_key, group_key):
-		user = user_key.get()
-		group = group_key.get()
+		user_and_group = ndb.get_multi([user_key, group_key])
+		user = user_and_group[0]
+		group = user_and_group[1]
 
 		if group_key not in user.groups:
 			return False
 		else:
 			user.groups.remove(group_key)
 			group.members.remove(user_key)
-			user.put()
-			group.put()
+			ndb.put_multi([user, group])
 			return True
 
 class GroupPost(ndb.Model):
 	group_id = ndb.StringProperty(required = True, indexed = True)
 	user_id = ndb.StringProperty(required = True, indexed = True)
 	post = ndb.TextProperty(required = True, indexed = False)
-	created = ndb.DateTimeProperty(auto_now = True)
+	created = ndb.IntegerProperty(required = True, indexed = True)
 
 	@classmethod
 	def create_group_post(cls, group_id, user_id, post):
-		group_post_id = group_id + "|" + user_id
+		group_post_id = GroupPost.allocate_ids(size=1)[0]
 
 		if not post:
 			raise BadUserInputError('post content cannot be blank')
@@ -243,14 +277,15 @@ class GroupPost(ndb.Model):
 		group_post = GroupPost(id = group_post_id,
 								group_id = group_id,
 								user_id = user_id,
-								post = post)
+								post = post,
+								created = int(time.time()))
 
 		group_post_key = group_post.put()
 		return group_post_key
 
 	@classmethod
 	def fetch_posts_by_group(cls, group_id):
-		group_posts = GroupPost.query(GroupPost.group_id == group_id).fetch()
+		group_posts = GroupPost.query(GroupPost.group_id == group_id).order(-GroupPost.created).fetch()
 		if group_posts:
 			return group_posts
 		else:

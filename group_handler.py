@@ -8,8 +8,8 @@ from google.appengine.ext.webapp import blobstore_handlers
 from utility_handler import Handler
 from models import Group, GroupPost, User, PrivateRequest
 from helper_functions import BadUserInputError, EntityExistsError
-from helper_functions import sanitize_group_name, get_group_id
-from notification_handler import create_notifications, get_notifications
+from helper_functions import sanitize_group_name, get_group_id, get_post_timestamp
+from notification_handler import create_notifications
 
 
 class CreateGroupHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
@@ -81,11 +81,26 @@ class GroupJoiningHandler(Handler):
 		if not self.user:
 			return self.redirect('/')
 
-		user_key = ndb.Key(User, self.user.user_id())
+		user_key = self.user_key
 		group_key = ndb.Key(Group, group_id)
 		group_joined = Group.join_group(user_key, group_key)
 
 		if group_joined:
+			return self.redirect('/feed')
+		else:
+			return self.redirect('/group/%s' % group_id)
+
+class GroupLeavingHandler(Handler):
+	def get(self, group_id):
+		if not self.user:
+			return self.redirect('/')
+
+		user_key = self.user_key
+		group_key = ndb.Key(Group, group_id)
+		
+		group_left = Group.leave_group(user_key, group_key)
+
+		if group_left:
 			return self.redirect('/feed')
 		else:
 			return self.redirect('/group/%s' % group_id)
@@ -95,26 +110,20 @@ class GroupRequestAdminHandler(Handler):
 		if not self.user:
 				return self.redirect('/')
 
-		user = User.get_by_id(self.user.user_id())
-		group = Group.get_by_id(group_id)
-		req = PrivateRequest.raise_request(group, user, 'admin')
-
-		return self.redirect('/feed')
-
-class GroupLeavingHandler(Handler):
-	def get(self, group_id):
-		if not self.user:
-			return self.redirect('/')
-
-		user_key = ndb.Key(User, self.user.user_id())
+		user_key = self.user_key
 		group_key = ndb.Key(Group, group_id)
-		
-		group_left = Group.leave_group(user_key, group_key)
 
-		if group_left:
+		user_and_group = ndb.get_multi([user_key, group_key])
+		user = user_and_group[0]
+		group = user_and_group[1]
+
+		# don't raise admin request until user in not a member of group
+		# or the user is already an admin of the group
+		if group_key not in user.groups or user_key in group.admins:
 			return self.redirect('/feed')
-		else:
-			return self.redirect('/group/%s' % group_id)
+
+		req = PrivateRequest.raise_request(group, user, 'admin')
+		return self.redirect('/feed')
 
 class GroupPostHandler(Handler):
 	def get(self, group_id):
@@ -127,35 +136,76 @@ class GroupPostHandler(Handler):
 		if not self.user:
 			return self.redirect('/')
 
-		user_id = self.user.user_id()
 		user_post = self.request.get('user_post')
 
+		# check if user is a member of group
+		user = self.user_key.get()
+		group = Group.get_by_id(group_id)
+		if self.user_key not in group.members:
+			return self.render('/')
+
 		try:
-			GroupPost.create_group_post(group_id, user_id, user_post)
+			post_key = GroupPost.create_group_post(group_id, self.user_id, user_post)
 		except BadUserInputError as e:
 			return self.render('group_post.html', error = e.value,
 												group_id = group_id)
 
-		#get user_key and name to create notification content
-		user_key = ndb.Key(User, user_id)
-		user_email = user_key.get().email
-
-		#get group name and members for notification target
-		group = Group.get_by_id(group_id)
+		#get poster_name to create notification content
+		poster_name = user.display_name or user.email
 
 		#create notification content
-		notification = {'poster_name': user_email,
+		notification = {'post_id': post_key.urlsafe(),
+						'poster_name': poster_name,
+						'poster_image': user.thumbnail_url,
 						'group_name': group.name,
+						'group_id': group_id,
+						'group_image': group.cover_image_thumbnail,
 						'timestamp': str((int(time.time()))),
 						'read': 'False'}
 
 		#get notification receiving members by removing the posting user
 		notification_target_members = group.members
-		notification_target_members.remove(user_key)
+		notification_target_members.remove(self.user_key)
 
 		create_notifications(notification_target_members, notification)
 		return self.redirect('/feed')
 
+
+class GetGroupFeedAjax(Handler):
+	def get(self):
+		if not self.user:
+			return None
+
+		group_id = get_group_id(sanitize_group_name(self.request.get('gid')))
+		group = Group.get_by_id(group_id)
+		user_key = self.user_key
+
+		if group and user_key in group.members:
+			group_posts = GroupPost.fetch_posts_by_group(group_id)
+			if not group_posts:
+				#return null for no posts but group exists
+				return self.render_json(None)
+
+			feed = []
+			user_key_list = []
+			for post in group_posts:
+				p = {}
+				p["created"] = post.created
+				p["post"] = post.post
+				p["post_id"] = post.key.urlsafe()
+				feed.append(p)
+
+				#also make a list of keys users who posted
+				user_key = ndb.Key(User, post.user_id)
+				user_key_list.append(user_key)
+
+			posters = ndb.get_multi(user_key_list)
+			for i in range(len(feed)):
+				#now add the user info to the feed post
+				feed[i]["poster_name"] = (posters[i].display_name or posters[i].email)
+				feed[i]["poster_image"] = posters[i].thumbnail_url
+
+			return self.render_json(feed)
 
 
 

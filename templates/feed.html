@@ -1,33 +1,64 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<title>Feed</title>
-</head>
-<body>
+
+{% extends 'base.html' %}
+
+{% block title %}
+	<title>TS | Feed</title>
+{% endblock %}
+
+{% block content %}
+	<span style="display:none" id="groupJSON" data-groupJSON = "{{group_json}}">TEST</span>
+	<!-- adding the scripts on top since we use them to generate our markup -->
+	<script src="../scripts/jquery.js"></script>
+	<script src="../scripts/knockout.js"></script>
+	<script src="../scripts/sammy.js"></script>
+	<script src="../scripts/feed-page.js"></script>
+
 	<h2>Your feedpage // {{display_name}} //</h2>
 	<a href="{{status_url}}">Logout</a>
 	
-	{% if groups_joined %}
+	<div>
 		<h4>Groups joined</h4>
-		<ul>
-			{% for group in groups_joined %}
-				<li>{{group.name}}</li>
-			{% endfor %}
-		</ul>
-	{% else %}
-		<h4>No groups joined yet</h4>
-	{% endif %}
+        <ul data-bind="foreach: groups">
+        	<li data-bind = "text: name, click: $parent.updateCurrentGroup"></li>
+        </ul>	
+	</div>
+	
+	<h4>Feed</h4>
+	<!-- ko if: currentGroup() -->
+		<strong data-bind = "text: currentGroup().name"></strong>
+    <!-- /ko -->
 
-	{% if notifications %}
-		<h4>Notifications</h4>
-		<ul>
-			{% for nt in notifications %}
-				<li>{{nt.poster_name}} posted in {{nt.group_name}} --- {{nt.timestamp}} ago</li>
-			{% endfor %}
-		</ul>
-	{% else %}
-		<h4>No Notifications</h4>
-	{% endif %}
-</body>
-</html>
+    <!-- ko ifnot: feed() && currentGroup() -->
+		<p>no posts in this group yet</p>
+    <!-- /ko -->
+    <button data-bind = "enable: newFeedFlag(), click:updateCurrentGroupFeed">you got new posts</button>
+	<ul data-bind = "foreach: feed">
+		<li>
+			<p>
+				<img data-bind = "attr: {src: poster_image}">
+				<b data-bind = "text: poster_name"></b>
+				<i data-bind = "text: timestamp"></i>
+			</p>
+			<p data-bind = "text: post"></p>
+		</li>
+	</ul>
+
+	<h4>Post Notifications</h4>
+	<button data-bind = "click: updatePostNotificationsReadStatus, enable: unreadPostNotifications() > 0">OK! Read</button>
+	<p>you have <b data-bind = "text: unreadPostNotifications"></b> unread notificaitons</p>
+	<ul data-bind= "foreach: postNotifications">
+		<li>
+			<p data-bind = "text: notificationText"></p>
+			<p><i data-bind = "text: timestamp"></i></p>
+		</li>
+	</ul>
+
+	<h4>Request Notifications</h4>
+	<p>you have <b data-bind="text: unreadRequestNotifications"></b> request notifications</p>
+	<button data-bind = "click: updateRequestNotificationsReadStatus, enable: unreadRequestNotifications() > 0">OK! checked</button>
+	<ul data-bind="foreach: requestNotifications">
+		<li data-bind = "text: text"></li>
+		<button data-bind = "click: $root.completeRequest, visible: complete === false">accept</button>
+	</ul>
+
+{% endblock %}

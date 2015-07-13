@@ -1,4 +1,5 @@
 import webapp2
+import datetime
 
 from google.appengine.api import users
 from google.appengine.ext import ndb
@@ -7,26 +8,29 @@ from google.appengine.ext import blobstore
 
 
 from utility_handler import Handler
-from feed_handler import FeedHandler
+from feed_handler import *
 from group_handler import *
-from notification_handler import NotificationWorkerHandler, RequestNotificationHandler, CompleteRequestHandler
-from profile_handler import ViewProfileHandler, EditProfileHandler,TestImageUploader
+from notification_handler import *
+from profile_handler import *
 
-from models import User
+from models import *
 
 class LandingPageHandler(Handler):
     def get(self):
     	if self.user:
     		self.redirect('/feed')
         else:
-        	self.render('base.html')
+        	self.render('index.html')
 
 class DatastoreHandler(Handler):
-	def get(self):
-		user_id = self.user.user_id()
-		user = User.get_by_id(user_id)
-		result = user.key
-		self.render('datastore.html', result = result)
+    def get(self):
+        user_key = self.user_key
+        group_key = ndb.Key(Group, "private-1")
+
+        group_key = ndb.Key(Group, "private-1")
+        r1 = PrivateRequest.test_existing_request(user_key, group_key, 'join')
+
+        self.render('datastore.html', result = user_key, result2 = r1)
 
 app = webapp2.WSGIApplication([
     ('/', LandingPageHandler),
@@ -40,7 +44,12 @@ app = webapp2.WSGIApplication([
     (r'/leave-group/([a-z0-9-]{3,20})', GroupLeavingHandler),
     (r'/post-group/([a-z0-9-]{3,20})', GroupPostHandler),
     ('/generate-notifications/posts', NotificationWorkerHandler),
-    ('/generate-notifications/requests', RequestNotificationHandler),
-    (r'/complete-request/([a-z0-9]+)', CompleteRequestHandler),
+    ('/ajax/get-user-groups', GetUserGroupsAjax),
+    ('/ajax/get-group-feed', GetGroupFeedAjax),
+    ('/ajax/get-post-notifications', GetPostNotificationsAjax),
+    ('/ajax/update-post-notifications-read-status', UpdatePostNotificationsStatus),
+    ('/ajax/get-request-notifications', RequestNotificationHandler),
+    ('/ajax/complete-request', CompleteRequestAjax),
     ('/datastore', DatastoreHandler)
 ], debug=True)   
+

@@ -14,45 +14,28 @@ class NotificationWorkerHandler(Handler):
 	def post(self):
 
 		notification = {
+			'post_id': self.request.get('post_id'),
 			'poster_name': self.request.get('poster_name'),
+			'poster_image': self.request.get('poster_image'),
 			'group_name': self.request.get('group_name'),
+			'group_id': self.request.get('group_id'),
+			'group_image': self.request.get('group_image'),
 			'timestamp': self.request.get('timestamp'),
 			'read': self.request.get('read') == 'True',
 		}
 		user_id = self.request.get('user_id')
 
-		existing_notifications = memcache.get(user_id, namespace = NOTF_NAMESPACE)
+		existing_notifications = memcache.get(user_id, namespace = NOTF_NAMESPACE)		
+		#first instance case here
+
+		#just create new memcache notification list consisting of
+		#present notification only
 		if not existing_notifications:
 			memcache.set(user_id, [notification], namespace = NOTF_NAMESPACE)
 		else:
 			existing_notifications.append(notification)
 			memcache.set(user_id, existing_notifications, namespace = NOTF_NAMESPACE)
-
-class RequestNotificationHandler(Handler):
-	def get(self):
-		if not self.user:
-			return self.redirect('/')
-
-		user_id = self.user.user_id()
-		notifications = PrivateRequest.fetch_notifications(user_id)
-		return self.render('request_notifications.html', notifications = notifications)
-
-class CompleteRequestHandler(Handler):
-	
-	def post(self, request_hash):
-		if not self.user:
-			return self.redirect('/')
-
-		admin_id = self.user.user_id()
-		complete = PrivateRequest.complete_request(admin_id, request_hash)
-		if complete:
-			return self.redirect('/feed')
-		else:
-			return self.render('datastore.html', result =  'something went wrong')
-
-
-
-
+		
 def create_notifications(user_key_list, worker_params):
 	user_id_list = [user_key.id() for user_key in user_key_list]
 
@@ -60,22 +43,70 @@ def create_notifications(user_key_list, worker_params):
 		worker_params['user_id'] = user_id
 		taskqueue.add(url='/generate-notifications/posts', params = worker_params)
 
+class RequestNotificationHandler(Handler):
+	def get(self):
+		if not self.user:
+			return self.redirect('/')
 
+		notifications = PrivateRequest.fetch_notifications(self.user_key)
+		if not notifications:
+			return self.render_json(None)
 
-def get_notifications(user_id):
-	notifications = memcache.get(user_id, namespace = NOTF_NAMESPACE)
-	result = []
-	if not notifications:
-		return None
-	else:
-		for ntf in reversed(notifications):
-			if ntf['read'] == False:
-				result.append(ntf)
+		ntf_list = []
+		for n in notifications:
+			ntf_list.append(n.to_dict(exclude = ["group_key", "group_admins", "user_key"]))
+
+		return self.render_json(ntf_list)
+
+class CompleteRequestAjax(Handler):
 	
-	if len(result) == 0:
-		return None
+	def post(self):
+		if not self.user:
+			return self.redirect('/')
 
-	return result
+		request_hash = self.request.get("request_hash");
+		admin_id = self.user.user_id()
+		complete = PrivateRequest.complete_request(admin_id, request_hash)
+		if complete:
+			return self.render_json(True);
+		else:
+			#return the ajax function in this case
+			return self.render_json(None);
+
+class GetPostNotificationsAjax(Handler):
+	def get(self):
+		if not self.user:
+			return None
+
+		notifications = memcache.get(self.user_id, namespace = NOTF_NAMESPACE)		
+		if not notifications:
+			return self.render_json(None)
+
+		notifications.reverse()
+		return self.render_json(notifications)
+
+
+class UpdatePostNotificationsStatus(Handler):
+	#since this request causes persistent changes, use a post
+	def post(self):
+		if not self.user:
+			return None
+
+		timestamp = int(self.request.get("timestamp"))
+		notifications = memcache.get(self.user_id, namespace = NOTF_NAMESPACE)
+		if not notifications:
+			return None
+
+		#if the timestamp sent by client is newer(greater) than that of notification
+		#mark it as read
+		for n in notifications:
+			if timestamp >= int(n["timestamp"]):
+				n["read"] = True
+
+		memcache.set(self.user_id, notifications, namespace = NOTF_NAMESPACE)
+		return self.render_json(True);
+
+
 
 
 ###Old Alogorithms...can be user to model hard notifications
