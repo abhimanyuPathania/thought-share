@@ -20,6 +20,8 @@ class User(ndb.Model):
 	image_blob = ndb.BlobKeyProperty (indexed = False)
 	image_url = ndb.StringProperty(indexed = False, default = None)
 	thumbnail_url = ndb.StringProperty(indexed = False, default = None)
+
+	admin_groups = ndb.KeyProperty(repeated = True, indexed = False)
 	groups = ndb.KeyProperty(repeated = True, indexed = False)
 
 	@classmethod
@@ -65,19 +67,12 @@ class User(ndb.Model):
 			return True
 
 class PrivateRequest(ndb.Model):
-	#redundant information here save multiple datastore queries
-	#since private request are going to be fetched over ajax polling
-
 	#group info
 	group_key = ndb.KeyProperty(required = True, indexed = True)
 	group_name = ndb.StringProperty(required = True, indexed = False)
-	group_image = ndb.StringProperty(indexed = False)
-	group_admins = ndb.KeyProperty(repeated = True, indexed = True)
 
 	#user info
 	user_key = ndb.KeyProperty(required = True, indexed = True)
-	user_name = ndb.StringProperty(required = True, indexed = False)
-	user_image = ndb.StringProperty(indexed = False)
 
 	#request info
 	request_hash = ndb.StringProperty(required = True, indexed = True)
@@ -92,11 +87,7 @@ class PrivateRequest(ndb.Model):
 		new_request = PrivateRequest(id = request_id,
 										group_key = group.key,
 										group_name = group.name,
-										group_image = group.cover_image_thumbnail,
-										group_admins = group.admins,
 										user_key = user.key,
-										user_name = (user.display_name or user.email),
-										user_image = user.thumbnail_url,
 										request_hash = id_hash,
 										request_type = request_type,
 										timestamp = int(time.time()))
@@ -105,48 +96,58 @@ class PrivateRequest(ndb.Model):
 
 	#put this in a transaction
 	@classmethod
-	def complete_request(cls, admin_id, request_hash):
-		req = PrivateRequest.query(PrivateRequest.request_hash == request_hash).get()
+	@ndb.transactional(xg=True)
+	def complete_request(cls, admin_id, req):
+		admin_key = ndb.Key(User, admin_id)
+		target_user_and_group = ndb.get_multi([req.user_key, req.group_key])
+		target_user = target_user_and_group[0]
+		target_group = target_user_and_group[1]
 
-		if req:
-			admin_key = ndb.Key(User, admin_id)
+		#only go further if user(logged-in; fulfilling the req) is a group admin
+		if admin_key in target_group.admins:
 
-			#only go further if user(logged-in; fulfilling the req) is a group admin
-			if admin_key in req.group_admins:
-				target_user_and_group = ndb.get_multi([req.user_key, req.group_key])
-				target_user = target_user_and_group[0]
-				target_group = target_user_and_group[1]
+			if req.request_type == 'join':
+				#add group key to User groups
+				target_user.groups.append(req.group_key)
 
-				if req.request_type == 'join':
-					#add group key to User groups
-					target_user.groups.append(req.group_key)
+				#add user key to Group members
+				target_group.members.append(req.user_key)
 
-					#add user key to Group members
-					target_group.members.append(req.user_key)
+				#set the complete flag on request
+				req.complete = True
 
-					#set the complete flag on request
+				ndb.put_multi([target_user, target_group, req])
+				return target_group
+
+			if req.request_type == 'admin':
+				#again checking if target_user is a member and not an admin already
+				if req.user_key in target_group.members and req.user_key not in target_group.admins:
+					
+					#add user_key to group admins list
+					target_group.admins.append(req.user_key)
+
+					#add group key to user's admin groups list
+					target_user.admin_groups.append(req.group_key)
+
+					#update the request's complete flag
 					req.complete = True
 
-					ndb.put_multi([target_user, target_group, req])
-					return True
+					ndb.put_multi([target_group, req, target_user])
+					return target_group
 
-				if req.request_type == 'admin':
-					#again checking if target_user is a member and not an admin already
-					if req.user_key in target_group.members and req.user_key not in target_group.admins:
-						target_group.admins.append(req.user_key)
-						req.complete = True
-
-						ndb.put_multi([target_group, req])
-						return True
-		
 		#return false otherwise 
 		return False
 
 	@classmethod
 	def fetch_notifications(cls, user_key):
 		#user_key of the user logged-in in the app fetching notifications if any
+		user = user_key.get()
+		if not user.admin_groups:
+			return None
+
 		q = PrivateRequest.query(ndb.AND(PrivateRequest.complete == False,
-										 PrivateRequest.group_admins == user_key))
+										 PrivateRequest.group_key.IN(user.admin_groups)))
+		
 		notifications = q.order(-PrivateRequest.timestamp).fetch()
 		return notifications
 
@@ -156,10 +157,11 @@ class PrivateRequest(ndb.Model):
 										 PrivateRequest.group_key == group_key,
 										 PrivateRequest.complete == False,
 										 PrivateRequest.request_type == request_type))
-		req = q.get()
+		req = q.get(keys_only = True)
 		return req
 
 class Group(ndb.Model):
+	#make sure let the name remain fixed upon setting it once
 	name = ndb.StringProperty(required = True)
 	description = ndb.TextProperty(required = True, indexed = False)
 	private = ndb.BooleanProperty(default = False)
@@ -193,6 +195,8 @@ class Group(ndb.Model):
 		if availability_test:
 			raise EntityExistsError('Group name taken')
 
+		creator_user = creator.get()
+		new_group_key = ndb.Key(Group, group_id)
 		if name_test and not availability_test:
 			#cosmetic if statement
 			new_group = Group(id = group_id,
@@ -203,6 +207,7 @@ class Group(ndb.Model):
 			if private:
 				new_group.private = True
 				new_group.admins = [creator]
+				creator_user.admin_groups.append(new_group_key)
 
 			if cover_image_blob_key:
 				#add cover image fields if image uploaded
@@ -210,14 +215,10 @@ class Group(ndb.Model):
 				new_group.cover_image_url = images.get_serving_url(cover_image_blob_key)
 				new_group.cover_image_thumbnail = images.get_serving_url(cover_image_blob_key, size = 100)
 			
-			new_group_key = new_group.put()
+			creator_user.groups.append(new_group_key)
+			creator_user.put()
 
-			#also add the group key to the user's groups list
-			#in the User entity
-			user = creator.get()
-			user.groups.append(new_group_key)
-			user.put()
-
+			new_group.put()
 			return new_group_key
 
 	@classmethod
@@ -258,6 +259,21 @@ class Group(ndb.Model):
 		else:
 			user.groups.remove(group_key)
 			group.members.remove(user_key)
+
+			if group.private:
+				# check/del for existing admin request by the user in leaving group
+				req_key = PrivateRequest.test_existing_request(user_key, group_key, 'admin')
+				if req_key:
+					req_key.delete()
+				
+				# if leaving user is also an admin
+				if user_key in group.admins:
+					# remove user from admin list
+					group.admins.remove(user_key)
+
+					# remove group from user's admin_groups
+					user.admin_groups.remove(group_key)
+
 			ndb.put_multi([user, group])
 			return True
 
@@ -271,13 +287,15 @@ class GroupPost(ndb.Model):
 	def create_group_post(cls, group_id, user_id, post):
 		group_post_id = GroupPost.allocate_ids(size=1)[0]
 
-		if not post:
+		# isspace checks if post only has spaces, newlines or tabs
+		if not post or post.isspace():
 			raise BadUserInputError('post content cannot be blank')
 
+		#call strip on post to remove extra white space on start/end
 		group_post = GroupPost(id = group_post_id,
 								group_id = group_id,
 								user_id = user_id,
-								post = post,
+								post = post.strip(),
 								created = int(time.time()))
 
 		group_post_key = group_post.put()

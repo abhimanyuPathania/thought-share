@@ -2,24 +2,35 @@
 function PostNotification(n){
 	var self = this;
 
-	self.notificationText = n.poster_name + " posted in " + n.group_name;
+	//can also try to inject html directly
+	if (n["type"] === "post"){
+		self.notificationText = n.poster_name + " posted in " + n.group_name;
+	}
+	if (n["type"] === "join"){
+		self.notificationText = n.poster_name + " has accepted your request to join "+ n.group_name;
+	}
+	if (n["type"] === "admin"){
+		self.notificationText = n.poster_name + " has accepted your request for adminship of "+ n.group_name;
+	}
 	self.postId = n.post_id;
 	self.groupId = n.group_id;
 	self.posterImage = n.poster_image;
-	self.groupImage = n.group_image;
-	self.timestampInSeconds = n.timestamp;
-	self.timestamp = fixPostNotificationTimestamp(n.timestamp, true);
+	self.timestamp = n.timestamp;
+	self.timestampText = fixPostNotificationTimestamp(n.timestamp, true);
 
 }
 
 function FeedPageViewModel() {
 	var REQUEST_NTF_KEY = "ts-req-ntf-timestamp";
+	var POST_NTF_KEY = "ts-post-ntf-timestamp";
+	var stopPostNotificationPoll = false;
 	var self = this;
 
 	//---data---//
 	self.groups = ko.observable();
 	self.currentGroup = ko.observable();
 	self.feed = ko.observable();
+	self.userPost = ko.observable();
 
 	//this flag saves us from polling server to get latest posts in feed
 	self.newFeedFlag = ko.observable(false);
@@ -30,8 +41,8 @@ function FeedPageViewModel() {
 	self.unreadRequestNotifications = ko.observable(0);
 
 	setGroups();
-	doPostNotificationPolling();
 	doRequestNotificationsPolling();
+	doPostNotificationsPoll();
 
 	//---behaviour---//
 	self.updateCurrentGroup = function(group) {
@@ -46,24 +57,141 @@ function FeedPageViewModel() {
 		}
 	}
 
-	self.updatePostNotificationsReadStatus = function(){
-		var mostRecentTimestamp = self.postNotifications()[0].timestampInSeconds;
+	self.postInCurrentGroup = function() {
+		if (!self.currentGroup()){
+			return;
+		}
+		
+		// use jquery's trim to check is post contains only white spaces
+		// also removes extra whitespace in start/end
+		var userPost = $.trim(self.userPost());
+		if (!userPost){ 
+			return;
+		}
+
 		$.ajax({
-			url: "ajax/update-post-notifications-read-status",
+			url: "/ajax/post-group",
 			type: "POST",
 			dataType: "json",
-			data: {"timestamp": mostRecentTimestamp},
-			success: function(status){
-				console.log("read status updated");
-				// update unread notificaitons
-				self.unreadPostNotifications(0);
+			data: {"user_post": userPost,
+				   "target_group": self.currentGroup().id
+				  },
+				   
+			success: function (resp) {
+				if (!resp){
+					return;
+				}
+				console.log("posted in", self.currentGroup().id);
+				self.userPost(null);
+				setTimeout(fetchCurrentGroupFeed, 1000);
 			},
 
-			error: function(xhr, status){
-				console.log(status, "happened while updating notification read status");
+			error: function(xhr) {
+				console.log("something went wrong while posting in group");
+				console.log("xhr.responseText", xhr.responseText);
 			}
 		});
 	}
+
+	//!!!!this function interacts heavily with ui and need to flexible to fetch even if
+	//there are no notifications to fetch----------------------------------
+	self.fetchPostNotification = function() {
+		//set the flag
+		stopPostNotificationPoll = true;
+		var topPostNtfTimestamp = localStorage.getItem(POST_NTF_KEY);
+		var testInt = parseInt(topPostNtfTimestamp, 10);
+		var temp = self.postNotifications();
+
+		//also check for garbage value that might be inserted from local storage
+		//!testInt covers the case where we forcibly set local storage value to 0
+		if (!topPostNtfTimestamp || !testInt){
+			topPostNtfTimestamp = 0;
+		}
+
+		//if there is a timestamp in local storage, but we don't have any notifications
+		//set topPostNtfTimestamp as 0 to get all
+		if(!temp) {
+			topPostNtfTimestamp = 0;
+		}
+
+		/*if we have notifications and also a valid timestamp in local storage 
+		choose the bigger timestamp of both*/
+		if(temp && topPostNtfTimestamp && testInt){
+			topPostNtfTimestamp = Math.max(testInt, temp[0].timestamp);
+		} 
+
+		console.log("timestamp sent", topPostNtfTimestamp);
+		$.ajax({
+			url: "/ajax/get-post-notifications",
+			type: "GET",
+			dataType: "json",
+			data: {"timestamp" : topPostNtfTimestamp},
+
+			success: function(notifications){
+
+				if (!notifications || notifications.length == 0){
+					//don't do anything for null returned due to no notifications
+					return false;
+				}
+				
+				var currentGroupId = self.currentGroup().id;
+				var latestPostId;
+				if (self.feed()){
+					latestPostId = self.feed()[0].post_id;
+				}
+
+				// use jquery map to get array of postNotifications objects
+				/* n inside the function is still modeled as the object from server,
+				   so use server side(python) property names */
+				var ntfProcessed = $.map(notifications, function(n, i){
+					/*raise new post flag only if
+						>> there is an unread notification about current group
+						>> notification is of type "post"
+						>> we have a post in the feed
+						>> notification is about a post that is not in the current group feed
+					*/
+					if(n.group_id === currentGroupId && latestPostId && n.post_id !== latestPostId && n["type"] === "post"){
+						self.newFeedFlag(true); 
+					}
+					return new PostNotification(n);
+				});
+
+				//update most recently fetched timestamp to local storage
+				localStorage.setItem(POST_NTF_KEY, ntfProcessed[0].timestamp);
+
+				
+				//temp holds current notifications
+				var temp = self.postNotifications();
+				if(temp) {
+					//update timestampText on existing notifications
+					for (var i=0, l=temp.length; i<l; i++) {
+						temp[i].timestampText = fixPostNotificationTimestamp(temp[i].timestamp);
+					}
+
+					// update the value of observables
+					self.postNotifications(null);
+					self.postNotifications(ntfProcessed.concat(temp));
+				} else {
+					self.postNotifications(ntfProcessed);
+				}
+
+				//set unread number to zero
+				self.unreadPostNotifications(0);
+			},
+
+			//set local storage value to 0 in case of unseen errors,
+			//this makes app fetch all notifications in the next call
+			error: function(){
+				localStorage.setItem(POST_NTF_KEY, 0);
+				console.log("Something went wrong while fetching post NOTIFICATIONS");
+			},
+
+			complete: function() {
+				//always turn on the post request polling flag
+				stopPostNotificationPoll = false;
+			}
+		});
+	};
 
 	self.updateRequestNotificationsReadStatus = function() {
 		//since our req ntf are already ordered by latest
@@ -79,8 +207,6 @@ function FeedPageViewModel() {
 
 	self.completeRequest = function(n) {
 		// n is the request notification object
-		console.log("completeRequest", n.request_hash);
-
 		$.ajax({
 			url:"/ajax/complete-request",
 			type: "POST",
@@ -102,8 +228,6 @@ function FeedPageViewModel() {
 					}
 				}
 
-				console.log(JSON.stringify(temp));
-
 				//view does not get updated for some reason without destroying it
 				self.requestNotifications(null);
 				self.requestNotifications(temp);
@@ -120,62 +244,34 @@ function FeedPageViewModel() {
 		console.log("setting groups");
 		var groupJSON = $("#groupJSON").attr("data-groupJSON");
 		var groups = JSON.parse(groupJSON);
-		if(groups.length > 0) {
-			self.groups(groups);
-			self.currentGroup(groups[0]);
+
+		//return if user has joined no groups
+		if(groups.length <= 0) {
+			return;
 		}
+
+		//intialize observables
+		self.groups(groups);
+		self.currentGroup(groups[0]);
 	}
 
 	// get post notifications
-	function doPostNotificationPolling() {
+	function doPostNotificationsPoll() {
+		if (stopPostNotificationPoll){
+			console.log("post polling stopped");
+			return;
+		}
 		$.ajax({
-			url: "/ajax/get-post-notifications",
+			url: "/ajax/check-post-notifications",
 			type: "GET",
-			dataType: "json",			
-			success: function(notifications){
-
-				if (!notifications){
-					//don't do anything for null returned due to no notifications
-					return false;
-				}
-				
-				var newUnread = 0;
-				var currentGroupId = self.currentGroup().id;
-				var latestPostId;
-				if (self.feed()){
-					latestPostId = self.feed()[0].post_id;
-				}
-
-				// use jquery map to get array of postNotifications objects
-				/* n inside the function is still modeled as the object from server,
-				   so use server side(python) property names */
-				var ntfProcessed = $.map(notifications, function(n, i){
-					if (!n.read){
-						// increase the unread notification number
-						newUnread += 1;
-
-						/*raise new post flag only if
-							>> there is an unread notification about current group
-							>> we have a post in the feed
-							>> notification is about a post that is not in the current group feed
-						*/
-
-						if(n.group_id === currentGroupId && latestPostId && n.post_id !== latestPostId){
-							self.newFeedFlag(true); 
-						}
-					}
-
-					return new PostNotification(n);
-				});
-
-				// update the value of observables
-				self.unreadPostNotifications(newUnread);
-				self.postNotifications(ntfProcessed);
+			dataType: "json",
+			success: function(data){
+				self.unreadPostNotifications(data);
 			},
-			error: function(){
-				console.log("Something went wrong while fetching post NOTIFICATIONS");
+			error: function(xhr, status){
+				console.log(status, "happened while checking post notifications");
 			},
-			complete: setTimeout(doPostNotificationPolling, 45000) //checking every 45 seconds
+			complete: setTimeout(doPostNotificationsPoll, 50000)
 		});
 	}
 
@@ -186,7 +282,6 @@ function FeedPageViewModel() {
 			type: "GET",
 			dataType: "json",
 			success: function(notifications){
-				
 				if (!notifications){
 					return;
 				}
@@ -237,15 +332,13 @@ function FeedPageViewModel() {
 			url: "/ajax/get-group-feed",
 			type: "GET",
 			dataType: "json",
-			data: {"gid": self.currentGroup().id},
-			//timeout: 5000,
-			
+			data: {"gid": self.currentGroup().id},			
 			success: function(feed){				
 				if(feed === null){
 					self.feed(feed);
 					return;
 				}
-				//console.log(JSON.stringify(feed[0]));
+
 				// use jquery map to add the timestamp text property to each post from feed
 				self.feed($.map(feed, function(post, i){
 					post["timestamp"] = fixPostNotificationTimestamp(post.created);
@@ -273,6 +366,7 @@ function FeedPageViewModel() {
             })[0];
 
             self.currentGroup(group);
+            self.userPost(null);
             fetchCurrentGroupFeed();
         });
 
@@ -287,8 +381,12 @@ function FeedPageViewModel() {
     }).run();    
 }; // end view model
 
+function testUserPost(post) {
+
+}
 
 function fixPostNotificationTimestamp(t, ntf){
+	//sent ntf as true to get "ago" appended textTimstamp
 	var SECONDS_IN_DAY = 24*60*60;
 	var miniMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
 					  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

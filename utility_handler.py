@@ -45,6 +45,10 @@ class Handler(webapp2.RequestHandler):
 		self.response.headers['Content-Type'] = 'application/json; charset=UTF-8'
 		self.write(json_txt)
 
+	def fail_ajax(self, response_code=400, response_text=None):
+		self.response.status_int = response_code;
+		self.write(response_text)
+
 	def delayed_redirect(self, url=None, message=None, delay=None):
 		if url==None:
 			url = "http://www.linkiful.appspot.com"

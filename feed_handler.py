@@ -45,6 +45,7 @@ class FeedHandler(Handler):
 				temp = {}
 				temp["name"] = g.name
 				temp["id"] = g.key.id()
+				temp["private"] = g.private
 				groups_list.append(temp)
 
 		group_json = json.dumps(groups_list)
