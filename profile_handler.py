@@ -6,35 +6,39 @@ from google.appengine.ext.webapp import blobstore_handlers
 from utility_handler import Handler
 
 from models import User
+from helper_operations import get_group_data
 from helper_functions import BadUserInputError, BadImageError
 
 class ViewProfileHandler(Handler):
 	def get(self):
-		if not self.user:
+		if not self.account:
 			return self.redirect('/')
 
-		user = User.get_by_id(self.user.user_id())
-		display_name = user.display_name
-		if not display_name:
-			display_name = 'Not set'
-		return self.render('view_profile.html', display_name = display_name,
-												email = user.email,
-												user_image_url = user.image_url,
-												user_thumbnail_url = user.thumbnail_url)
+		user = self.user_key.get()
+		user_data = {
+			'name': user.display_name,
+			'email': user.email,
+			'image': user.thumbnail_url
+		}
+
+		user_group_keys = user.groups
+		if user_group_keys:
+			params = ['name', 'cover_image_thumbnail']
+			group_data = get_group_data(user_group_keys, params)
+			user_data['groups']  = group_data
+		 
+		return self.render('view_profile.html', u = user_data)
 
 
 #!!!!!!!!!!!!!!!!!!!!!---------add the option to remove photo
 class EditProfileHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 	def get(self):
-		if not self.user:
+		if not self.account:
 			return self.redirect('/')
 
 		user = User.get_by_id(self.user.user_id())
 		display_name = user.display_name
 		image_url = user.image_url
-
-		if not display_name:
-			display_name = 'Not set'
 		
 		image_upload_url = blobstore.create_upload_url('/edit-profile')
 		self.render('edit_profile.html', display_name = display_name,
@@ -42,7 +46,7 @@ class EditProfileHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 										form_action = image_upload_url)
 
 	def post(self):
-		if not self.user:
+		if not self.account:
 			return self.redirect('/')
 
 		display_name = self.request.get('display_name')

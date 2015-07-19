@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}
+	<title>Thought Share</title>
+{% endblock %}
+
+{% block content %}
+
+<h2>
+	Create your account
+</h2>
+<a href="{{status_url}}">Logout</a>
+<div>
+	<form action="{{form_action}}" enctype="multipart/form-data" method="POST">
+		<div>
+			<h3>choose a display name</h3>
+			<input type="text" name="display_name">
+		</div>
+		<div>
+			<h3>set your image(optional)</h3>
+			<input type="file" name="file" value="Select">
+		</div>
+		<div>
+			<input type="submit" name="submit" value="Create">
+		</div>
+	</form>
+	{{error}}
+</div>
+{% endblock %}

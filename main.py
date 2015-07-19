@@ -5,6 +5,7 @@ from google.appengine.api import users
 from google.appengine.ext import ndb
 from google.appengine.api import memcache
 from google.appengine.ext import blobstore
+from google.appengine.ext.webapp import blobstore_handlers
 
 
 from utility_handler import Handler
@@ -15,30 +16,72 @@ from profile_handler import *
 
 from models import *
 
+from helper_functions import BadUserInputError, BadImageError
 from helper_operations import search_index
 
-
-class LandingPageHandler(Handler):
+class LandingPageHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
     def get(self):
     	if not self.user:
     		return self.render('index.html')
         
         # means user is atleast logged in to his google account
-        user_test = check_user_warm_cache(self.user_key)
-
-        if user_test:
+        # check for the user account too
+        if self.account:
             return self.redirect('/feed')
+        
         # only render the cerate user page if the user is not in db
-        else:
-            return self.render('create_user.html')
+        image_upload_url = blobstore.create_upload_url('/')
+        return self.render('create_user.html', form_action = image_upload_url)
 
     def post(self):
         if not self.user:
             return self.render('index.html')
 
-        user_test = check_user_warm_cache(self.user_key)
-        if user_test:
+        if self.account:
             return self.redirect('/feed')
+
+        # if reaches here means we have to ceate the account
+
+        # force user to enter his display name here
+        display_name = self.request.get('display_name')
+        try:
+            blob = self.get_uploads()[0]
+        except IndexError:
+            blob = None 
+
+        if not display_name:
+            image_upload_url = blobstore.create_upload_url('/')
+            error = 'display name must be present'
+            # delete orphan blob
+            if blob:
+                blobstore.delete([blob.key()])
+            return self.render('create_user.html', error = error,
+                                                   form_action = image_upload_url)
+
+        try:
+            User.create_user(self.user_id, display_name, self.user.email(), blob)
+        
+        except BadUserInputError as e:
+            # delete orphan blob
+            if blob:
+                blobstore.delete([blob.key()])
+
+            #reacreate image upload url since the old one gives error
+            image_upload_url = blobstore.create_upload_url('/')
+            return self.render('create_user.html', error = e.value,
+                                                    form_action = image_upload_url)
+        
+        except BadImageError as e:
+            #delete the incorrect blob uploaded
+            blobstore.delete([blob.key()])
+
+            #re-create upload url and render back the form
+            image_upload_url = blobstore.create_upload_url('/')
+            return self.render('create_user.html', error = e.value,
+                                                    form_action = image_upload_url)
+        
+        # user account created, redirect to feed page
+        return self.redirect('/feed')
         	
 
 class DatastoreHandler(Handler):

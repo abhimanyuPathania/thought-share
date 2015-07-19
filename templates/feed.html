@@ -6,7 +6,9 @@
 {% endblock %}
 
 {% block content %}
-	<span style="display:none" id="userGroupsJSON" data-groupJSON = "{{group_json}}">TEST</span>
+	<span style="display:none" id="userGroupsJSON" data-groupJSON = "{{group_json}}"></span>
+	<span style="display:none" id="userJSON" data-userJSON = "{{user_json}}"></span>
+
 	<!-- adding the scripts on top since we use them to generate our markup -->
 	<script src="../scripts/jquery.js"></script>
 	<script src="../scripts/knockout.js"></script>

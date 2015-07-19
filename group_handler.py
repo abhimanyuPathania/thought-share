@@ -16,7 +16,7 @@ from helper_db_operations import get_group_feed
 
 class CreateGroupHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 	def get(self):
-		if not self.user:
+		if not self.account:
 			return self.redirect('/')
 
 		image_upload_url = blobstore.create_upload_url('/create-group')
@@ -62,7 +62,7 @@ class GroupLandingPageHandler(Handler):
 	# /group/([a-z0-9-]{3,20})
 
 	def get(self, group_id_sent):
-		if not self.user:
+		if not self.account:
 			return self.redirect('/')
 
 		# sanitizing group name, just in case
@@ -138,7 +138,7 @@ class GroupLandingPageHandler(Handler):
 
 		#add creator information
 		creator = group.creator.get()
-		group_data["creator_name"] = (creator.display_name or creator.email)
+		group_data["creator_name"] = creator.display_name
 		group_data["creator_image"] = creator.thumbnail_url
 
 		#add recent posts in group
@@ -173,7 +173,7 @@ class GroupEditHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 	# /update-group/([a-z0-9-]{3,20})
 	
 	def get(self, group_id):
-		if not self.user:
+		if not self.account:
 			return self.redirect('/')
 
 		group = Group.get_by_id(group_id)
@@ -199,7 +199,7 @@ class GroupEditHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 		return self.render('edit_group.html', g = data)
 
 	def post(self, group_id):
-		if not self.user:
+		if not self.account:
 			return self.redirect('/')
 
 		description = self.request.get('description')
@@ -237,7 +237,7 @@ class GroupJoiningHandler(Handler):
 	# /join-group/([a-z0-9-]{3,20})
 
 	def get(self, group_id):
-		if not self.user:
+		if not self.account:
 			return self.redirect('/')
 
 		user_key = self.user_key
@@ -253,7 +253,7 @@ class GroupLeavingHandler(Handler):
 	# /leave-group/([a-z0-9-]{3,20})
 
 	def get(self, group_id):
-		if not self.user:
+		if not self.account:
 			return self.redirect('/')
 
 		user_key = self.user_key
@@ -269,7 +269,7 @@ class GroupLeavingHandler(Handler):
 class GroupRequestAdminHandler(Handler):
 	# /admin-group/([a-z0-9-]{3,20})
 	def post(self, group_id):
-		if not self.user:
+		if not self.account:
 				return self.redirect('/')
 
 		user_key = self.user_key
@@ -296,7 +296,7 @@ class GroupPostHandler(Handler):
 		return self.redirect('/')
 
 	def post(self):
-		if not self.user:
+		if not self.account:
 			return self.redirect('/')
 
 		user_post = self.request.get('user_post')
@@ -333,7 +333,7 @@ class GetGroupFeedHandler(Handler):
 	# /ajax/get-group-feed
 
 	def get(self):
-		if not self.user:
+		if not self.account:
 			return None
 
 		group_id = get_group_id(sanitize_group_name(self.request.get('gid')))
@@ -353,7 +353,7 @@ class GroupTextSearchHandler(Handler):
 	# /ajax/group-text-search
 	
 	def get(self):
-		if not self.user:
+		if not self.account:
 			return None
 
 		query_string = self.request.get("q")

@@ -37,9 +37,19 @@ def add_user_name_image(target_list, users_key_list,
 	
 	users = ndb.get_multi(users_key_list)
 	for i in range(len(target_list)):
-		target_list[i][name_property] = (users[i].display_name or users[i].email)
+		target_list[i][name_property] = users[i].display_name
 		target_list[i][image_property] = users[i].thumbnail_url
 	return target_list
+
+def get_group_data(group_key_list, params):
+	groups = ndb.get_multi(group_key_list)
+	group_data = []
+
+	for g in groups:
+		temp = g.to_dict(include = params)
+		temp['id'] = g.key.id()
+		group_data.append(temp)
+	return group_data
 
 
 def create_notification_dict(group_name, group_id, ntf_type, poster_key, post_key = None):	

@@ -12,6 +12,7 @@ from helper_operations import *
 
 NOTF_NAMESPACE = 'notifications'
 
+#!!!!!!---------------make the admin only
 class NotificationWorkerHandler(Handler):
 	def get(self):
 		self.redirect('/feed')
@@ -41,7 +42,7 @@ def create_notifications(user_key_list, worker_params):
 
 class RequestNotificationHandler(Handler):
 	def get(self):
-		if not self.user:
+		if not self.account:
 			return self.redirect('/')
 
 		notifications = PrivateRequest.fetch_notifications(self.user_key)
@@ -54,16 +55,20 @@ class RequestNotificationHandler(Handler):
 			ntf_list.append(n.to_dict(exclude = ["group_key","user_key"]))
 			user_key_list.append(n.user_key)
 
-		users = ndb.get_multi(user_key_list)
-		for i in range(len(ntf_list)):
-			ntf_list[i]["user_name"] = (users[i].display_name or users[i].email)
-			ntf_list[i]["user_image"] = users[i].thumbnail_url
+		ntf_list = add_user_name_image(ntf_list, user_key_list,
+									   name_property = "user_name",
+									   image_property = "user_image")
+		
+		# users = ndb.get_multi(user_key_list)
+		# for i in range(len(ntf_list)):
+		# 	ntf_list[i]["user_name"] = users[i].display_name
+		# 	ntf_list[i]["user_image"] = users[i].thumbnail_url
 		return self.render_json(ntf_list)
 
 class CompleteRequestHandler(Handler):
 	# /ajax/complete-request
 	def post(self):
-		if not self.user:
+		if not self.account:
 			return self.redirect('/')
 
 		request_hash = self.request.get("request_hash");
@@ -94,7 +99,7 @@ class GetPostNotificationsHandler(Handler):
 	# /ajax/get-post-notifications
 	
 	def get(self):
-		if not self.user:
+		if not self.account:
 			return None
 
 		# timestamp is sent 0; if client has not prior notifications in model
@@ -138,7 +143,7 @@ class CheckPostNotificationHandler(Handler):
 	# /ajax/check-post-notifications
 
 	def get(self):
-		if not self.user:
+		if not self.account:
 			return None
 
 		num = 0
@@ -157,7 +162,7 @@ class CheckPostNotificationHandler(Handler):
 class UpdatePostNotificationsStatus(Handler):
 	#since this request causes persistent changes, use a post
 	def post(self):
-		if not self.user:
+		if not self.account:
 			return None
 
 		timestamp = int(self.request.get("timestamp"))

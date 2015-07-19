@@ -8,53 +8,32 @@ from google.appengine.ext import ndb
 from utility_handler import Handler
 from models import User, Group
 
-from notification_handler import create_notifications
+from helper_operations import get_group_data
 
 class FeedHandler(Handler):
 	def get(self):
-		if not self.user:
+		if not self.account:
 			return self.redirect('/')
 
-		user_id = self.user_id
-		user_email = self.user.email()
-		memcache_test = memcache.get(user_id, namespace = 'users')
-		user = None
+		user = self.user_key.get()
 
-		if not memcache_test:
-			# a new user or stale cache
-			user = User.get_by_id(user_id)
-			if not user:
-				# first time user, creat new User entity
-				User.create_user(user_id, user_email)
-				return self.render('feed.html', display_name = user_email,
-												group_json = json.dumps([]))
-			else:
-				#user exists but not in cache...re-update cache
-				memcache.set(user_id, True, namespace = 'users')
-
-		# if we have user in memcache
-		if not user:
-			#only query for existing users if not already queried due to cache
-			user = User.get_by_id(user_id)
-
-		display_name = user.display_name or user.email
-		groups_list = []
-		if len(user.groups) > 0:
-			user_groups = ndb.get_multi(user.groups)
-			for g in user_groups:
-				temp = {}
-				temp["name"] = g.name
-				temp["id"] = g.key.id()
-				temp["private"] = g.private
-				groups_list.append(temp)
-
+		# add user's groups to undisplayed span's data-grouJSON attribute
+		# this is required for the client side routing to works
+		groups_list = get_group_data(user.groups, ['name', 'private'])
 		group_json = json.dumps(groups_list)
-		return self.render('feed.html', display_name = display_name,
-										group_json = group_json)
+
+		# add user's data from client side user object
+		user_data = user.to_dict(exclude = ['image_blob', 'admin_groups', 'groups'])
+		user_data['id'] = self.user_id
+		user_json = json.dumps(user_data)
+
+		return self.render('feed.html', display_name = user.display_name,
+										group_json = group_json,
+										user_json = user_json)
 
 class GetUserGroupsHandler(Handler):
 	def get(self):
-		if not self.user:
+		if not self.account:
 			return None
 
 		user = User.get_by_id(self.user_id)

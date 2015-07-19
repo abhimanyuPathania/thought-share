@@ -15,9 +15,7 @@ def get_group_feed(group_id, add_poster = True, limit = None, cursor = None):
 	feed = []
 	user_key_list = []
 	for post in group_posts:
-		p = {}
-		p["created"] = post.created
-		p["post"] = post.post
+		p = post.to_dict()
 		p["post_id"] = post.key.urlsafe()
 		feed.append(p)
 

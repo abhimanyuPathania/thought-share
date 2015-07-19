@@ -1,20 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<title>Profile</title>
-</head>
-<body>
-	<h2>Profile page</h2>
-	
-	<p>Display Name: {{display_name}}</p>
-	<p>email: {{email}} (fetched from the connected google account)</p>
-	{% if user_image_url %}
-		<p>Display picture: <img src="{{user_image_url}}"></p>
-		<p>thumbnail: <img src="{{user_thumbnail_url}}"></p>
-	{% else %}
-		<p>Display picture: None uploaded</p>
+{% extends 'base.html' %}
+
+{% block title %}
+	<title>{{u.name}}</title>
+{% endblock %}
+
+{% block content %}	
+<div>
+	{% if u.image %}
+		<p><img src="{{u.image}}" alt="{{u.name}}'s image"></p>
 	{% endif %}
-	<a href="/edit-profile">Edit Profile</a>
-</body>
-</html>
+	<h2>{{u.name}}</h2>
+	<p>Associated google account: {{u.email}}</p>
+</div>
+<div>
+	<h2>Groups joined</h2>
+	{% if u.groups %}
+		<p>
+			<i>
+				{{u.groups|length}} {{'group' if u.groups|length == 1 else 'groups'}}
+			</i>
+		</p>
+		{% for g in u.groups %}
+			<div>
+				<a href="/group/{{g.id}}">
+					<img src="{{g.cover_image_thumbnail}}" alt="{{g.name}}'s photo">
+					<span>{{g.name}}</span>
+				</a>
+			</div>
+		{% endfor %}
+	{% else %}
+		<strong>You have not joined any groups yet</strong>
+	{% endif %}
+</div>
+{% endblock %}

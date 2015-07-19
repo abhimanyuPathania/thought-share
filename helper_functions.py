@@ -24,6 +24,9 @@ def get_group_id(name):
     return id
 
 def check_display_name(name):
+	if name.isspace():
+		raise BadUserInputError('Invalid display name')
+		
 	if name and not DISPLAY_NAME_RE.match(name):
 		raise BadUserInputError('Invalid display name')
 	san_name = re.sub(r'[\s]{2,}', ' ', name).strip(' ')

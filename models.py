@@ -15,7 +15,7 @@ THUMBNAIL_SIZE = 100
 
 class User(ndb.Model):
 	email = ndb.StringProperty(required = True, indexed = False)
-	display_name = ndb.StringProperty(indexed = False)
+	display_name = ndb.StringProperty(required = True, indexed = False)
 
 	#change default value for basic avatars
 	image_blob = ndb.BlobKeyProperty (indexed = False)
@@ -26,12 +26,31 @@ class User(ndb.Model):
 	groups = ndb.KeyProperty(repeated = True, indexed = False)
 
 	@classmethod
-	def create_user(cls, user_id, email):
+	def create_user(cls, user_id, display_name, email, blob):
+
+		display_name = check_display_name(display_name)
+		
+		image_blob_key = None
+		if blob:
+			check_uploaded_image(blob)
+
+			# means no bad image exception raised
+			image_blob_key = blob.key()
+
 		new_user = User(id = user_id,
+						display_name = display_name,
 						email = email)
+
+		# set image if uploaded
+		if image_blob_key:
+			#set new image properties
+			new_user.image_blob = image_blob_key
+			new_user.image_url = images.get_serving_url(image_blob_key)
+			new_user.thumbnail_url = images.get_serving_url(image_blob_key, size=THUMBNAIL_SIZE, crop=False)
+
+		# set the memcache and create account
 		memcache.set(user_id, True, namespace = 'users')
-		key = new_user.put()
-		return key
+		new_user.put()
 
 	@classmethod
 	def edit_user(cls, user_id, display_name, blob):

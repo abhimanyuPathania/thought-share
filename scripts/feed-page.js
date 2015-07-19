@@ -2,16 +2,7 @@
 function PostNotification(n){
 	var self = this;
 
-	//can also try to inject html directly
-	if (n["type"] === "post"){
-		self.notificationText = n.poster_name + " posted in " + n.group_name;
-	}
-	if (n["type"] === "join"){
-		self.notificationText = n.poster_name + " has accepted your request to join "+ n.group_name;
-	}
-	if (n["type"] === "admin"){
-		self.notificationText = n.poster_name + " has accepted your request for adminship of "+ n.group_name;
-	}
+	self.notificationText = setPostNotificationText(n)
 	self.postId = n.post_id;
 	self.groupId = n.group_id;
 	self.posterImage = n.poster_image;
@@ -27,6 +18,7 @@ function FeedPageViewModel() {
 	var self = this;
 
 	//---data---//
+	self.user = null;
 	self.groups = ko.observable();
 	self.currentGroup = ko.observable();
 	self.feed = ko.observable();
@@ -42,7 +34,7 @@ function FeedPageViewModel() {
 	self.requestNotifications = ko.observable();
 	self.unreadRequestNotifications = ko.observable(0);
 
-	setGroups();
+	setGroupsAndUser();
 	doRequestNotificationsPolling();
 	doPostNotificationsPoll();
 
@@ -137,9 +129,11 @@ function FeedPageViewModel() {
 				}
 				
 				var currentGroupId = self.currentGroup().id;
-				var latestPostId;
+				var latestPost;
+				var	latestPostId;
 				if (self.feed()){
-					latestPostId = self.feed()[0].post_id;
+					latestPost = self.feed()[0]
+					latestPostId = latestPost.post_id;
 				}
 
 				// use jquery map to get array of postNotifications objects
@@ -153,7 +147,11 @@ function FeedPageViewModel() {
 						>> notification is about a post that is not in the current group feed
 					*/
 					if(n.group_id === currentGroupId && latestPostId && n.post_id !== latestPostId && n["type"] === "post"){
-						self.newFeedFlag(true); 
+						
+						//for the bug when user posts itself in group without checking any pending notf
+						if (latestPost.user_id !== self.user["id"]){
+							self.newFeedFlag(true); 
+						}
 					}
 					return new PostNotification(n);
 				});
@@ -295,10 +293,14 @@ function FeedPageViewModel() {
 		}, 800) //call after xyz milli seconds
 	}
 
-	function setGroups() {
-		console.log("setting groups");
+	function setGroupsAndUser() {
+		console.log("setting groups and user");
 		var groupJSON = $("#userGroupsJSON").attr("data-groupJSON");
+		var userJSON = $("#userJSON").attr("data-userJSON");
 		var groups = JSON.parse(groupJSON);
+		var user = JSON.parse(userJSON);
+
+		self.user = user;
 
 		//return if user has joined no groups
 		if(groups.length <= 0) {
@@ -383,6 +385,7 @@ function FeedPageViewModel() {
 	}
 
 	function fetchCurrentGroupFeed() {
+		console.log("fetchCurrentGroupFeed")
 		$.ajax({
 			url: "/ajax/get-group-feed",
 			type: "GET",
@@ -436,9 +439,6 @@ function FeedPageViewModel() {
     }).run();    
 }; // end view model
 
-function testUserPost(post) {
-
-}
 
 function fixPostNotificationTimestamp(t, ntf){
 	//sent ntf as true to get "ago" appended textTimstamp
@@ -494,6 +494,19 @@ function fixPostNotificationTimestamp(t, ntf){
 	}
 	
 	return result;
+}
+
+function setPostNotificationText(n){
+	//can also try to inject html directly
+	if (n["type"] === "post"){
+		return n.poster_name + " posted in " + n.group_name;
+	}
+	if (n["type"] === "join"){
+		return n.poster_name + " has accepted your request to join "+ n.group_name;
+	}
+	if (n["type"] === "admin"){
+		return n.poster_name + " has accepted your request for adminship of "+ n.group_name;
+	}
 }
 
 $(document).ready(function(){
