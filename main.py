@@ -15,22 +15,38 @@ from profile_handler import *
 
 from models import *
 
+from helper_operations import search_index
+
+
 class LandingPageHandler(Handler):
     def get(self):
-    	if self.user:
-    		self.redirect('/feed')
+    	if not self.user:
+    		return self.render('index.html')
+        
+        # means user is atleast logged in to his google account
+        user_test = check_user_warm_cache(self.user_key)
+
+        if user_test:
+            return self.redirect('/feed')
+        # only render the cerate user page if the user is not in db
         else:
-        	self.render('index.html')
+            return self.render('create_user.html')
+
+    def post(self):
+        if not self.user:
+            return self.render('index.html')
+
+        user_test = check_user_warm_cache(self.user_key)
+        if user_test:
+            return self.redirect('/feed')
+        	
 
 class DatastoreHandler(Handler):
     def get(self):
-        user_key = self.user_key
-        group_key = ndb.Key(Group, "private-1")
-
-        group_key = ndb.Key(Group, "private-1")
-        r1 = PrivateRequest.test_existing_request(user_key, group_key, 'join')
-
-        self.render('datastore.html', result = user_key, result2 = r1)
+        g = "group-1"
+        result = GroupPost.fetch_posts_by_group(group_id = g, limit = None, cursor = None)
+        self.render('datastore.html', result = result)
+        
 
 app = webapp2.WSGIApplication([
     ('/', LandingPageHandler),
@@ -42,15 +58,16 @@ app = webapp2.WSGIApplication([
     (r'/join-group/([a-z0-9-]{3,20})', GroupJoiningHandler),
     (r'/admin-group/([a-z0-9-]{3,20})', GroupRequestAdminHandler),
     (r'/leave-group/([a-z0-9-]{3,20})', GroupLeavingHandler),
+    (r'/edit-group/([a-z0-9-]{3,20})', GroupEditHandler),
     ('/ajax/post-group', GroupPostHandler),
+    ('/ajax/group-text-search', GroupTextSearchHandler),
     ('/generate-notifications/posts', NotificationWorkerHandler),
-    ('/ajax/get-user-groups', GetUserGroupsAjax),
-    ('/ajax/get-group-feed', GetGroupFeedAjax),
-    ('/ajax/check-post-notifications', CheckPostNotificationfAjax),
-    ('/ajax/get-post-notifications', GetPostNotificationsAjax),
-    ('/ajax/update-post-notifications-read-status', UpdatePostNotificationsStatus),
+    ('/ajax/get-user-groups', GetUserGroupsHandler),
+    ('/ajax/get-group-feed', GetGroupFeedHandler),
+    ('/ajax/check-post-notifications', CheckPostNotificationHandler),
+    ('/ajax/get-post-notifications', GetPostNotificationsHandler),
     ('/ajax/get-request-notifications', RequestNotificationHandler),
-    ('/ajax/complete-request', CompleteRequestAjax),
+    ('/ajax/complete-request', CompleteRequestHandler),
     ('/datastore', DatastoreHandler)
 ], debug=True)   
 

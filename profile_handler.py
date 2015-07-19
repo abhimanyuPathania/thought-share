@@ -6,7 +6,7 @@ from google.appengine.ext.webapp import blobstore_handlers
 from utility_handler import Handler
 
 from models import User
-from helper_functions import BadUserInputError
+from helper_functions import BadUserInputError, BadImageError
 
 class ViewProfileHandler(Handler):
 	def get(self):
@@ -22,9 +22,8 @@ class ViewProfileHandler(Handler):
 												user_image_url = user.image_url,
 												user_thumbnail_url = user.thumbnail_url)
 
-	def post(self):
-		return self.redirect('/view_profile')
 
+#!!!!!!!!!!!!!!!!!!!!!---------add the option to remove photo
 class EditProfileHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 	def get(self):
 		if not self.user:
@@ -48,42 +47,31 @@ class EditProfileHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 
 		display_name = self.request.get('display_name')
 		try:
-			user_image = self.get_uploads()[0]
-		except Exception:
-			user_image = None
+			blob = self.get_uploads()[0]
+		except IndexError:
+			blob = None
 
-		if not user_image and not display_name:
+		if not blob and not display_name:
 			#blank submission
-			return self.redirect('/view-profile')
-
-		blob_key = None
-		if user_image:
-			blob_key = user_image.key()
+			return self.redirect('/view-profile')	
 
 		try:
-			User.edit_user(self.user.user_id(), display_name, blob_key)
+			User.edit_user(self.user_id, display_name, blob)
+		
 		except BadUserInputError as e:
 			#reacreate image upload url since the old one gives error
+			image_upload_url = blobstore.create_upload_url('/edit-profile')
+			return self.render('edit_profile.html', error = e.value,
+													form_action = image_upload_url)
+		
+		except BadImageError as e:
+			#delete the incorrect blob uploaded
+			blobstore.delete([blob.key()])
+
+			#re-create upload url and render back the form
 			image_upload_url = blobstore.create_upload_url('/edit-profile')
 			return self.render('edit_profile.html', error = e.value,
 													form_action = image_upload_url)
 
 		return self.redirect('/view-profile')
 
-class TestImageUploader(blobstore_handlers.BlobstoreUploadHandler, Handler):
-	def post(self):
-		display_name = self.request.get('display_name')
-		user_image = self.get_uploads()[0]
-		blob_key = None
-
-		if user_image:
-			blob_key = user_image.key()
-
-		return self.render('datastore.html', result = (str(blob_key) + '-||-' + display_name))
-		
-		try:
-			User.edit_user(self.user.user_id(), display_name, blob_key)
-		except BadUserInputError as e:
-			return self.render('edit_profile.html', error = e.value)
-
-		return self.redirect('/view-profile')

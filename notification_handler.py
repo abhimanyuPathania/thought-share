@@ -60,8 +60,8 @@ class RequestNotificationHandler(Handler):
 			ntf_list[i]["user_image"] = users[i].thumbnail_url
 		return self.render_json(ntf_list)
 
-class CompleteRequestAjax(Handler):
-	
+class CompleteRequestHandler(Handler):
+	# /ajax/complete-request
 	def post(self):
 		if not self.user:
 			return self.redirect('/')
@@ -90,7 +90,9 @@ class CompleteRequestAjax(Handler):
 		return self.render_json(True);
 
 
-class GetPostNotificationsAjax(Handler):
+class GetPostNotificationsHandler(Handler):
+	# /ajax/get-post-notifications
+	
 	def get(self):
 		if not self.user:
 			return None
@@ -132,7 +134,9 @@ class GetPostNotificationsAjax(Handler):
 		unread_ntf = add_user_name_image(unread_ntf, unread_keys)
 		return self.render_json(unread_ntf)
 
-class CheckPostNotificationfAjax(Handler):
+class CheckPostNotificationHandler(Handler):
+	# /ajax/check-post-notifications
+
 	def get(self):
 		if not self.user:
 			return None

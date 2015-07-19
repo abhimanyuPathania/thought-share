@@ -10,6 +10,7 @@ from google.appengine.api import users
 from google.appengine.ext import ndb
 
 from models import User
+from helper_operations import 
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape=True)
@@ -18,11 +19,19 @@ class Handler(webapp2.RequestHandler):
     
 	def initialize(self, *a, **kw):
 		webapp2.RequestHandler.initialize(self, *a, **kw)
+
+		self.user = None
+		self.account = None
+
 		logged_user = users.get_current_user()
-		self.user = logged_user
 		if logged_user:
+			self.user = logged_user
 			self.user_id = logged_user.user_id()
 			self.user_key = ndb.Key(User, logged_user.user_id())
+
+			account_test = check_user_warm_cache(self.user_key)
+			if account_test:
+				self.account = True
 
 	def write(self, *a, **kw):
 		self.response.out.write(*a, **kw)

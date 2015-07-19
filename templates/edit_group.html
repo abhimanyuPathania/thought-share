@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}
+	<title>Edit {{g.name}}</title>
+{% endblock %}
+
+{% block content %}
+
+<h2>
+	{{g.name}} edit page
+</h2>
+
+<div>
+	<p>Edit the fields that you want to</p>
+	<form action="{{g.form_action}}" enctype="multipart/form-data" method="POST">
+		<p>
+			description: <textarea name="description" cols="30" rows="10">{{g.description}}</textarea>
+		</p>
+		<p>
+			current img: <img src="{{g.image}}">
+			<input type="file" name="file" value="Select">
+		</p>
+		<div>
+			<input type="submit" name="submit" value="Save changes">
+		</div>
+	</form>
+	{{error}}
+</div>
+{% endblock %}

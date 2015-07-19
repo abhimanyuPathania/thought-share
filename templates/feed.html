@@ -2,11 +2,11 @@
 {% extends 'base.html' %}
 
 {% block title %}
-	<title>TS | Feed</title>
+	<title>Thought Share</title>
 {% endblock %}
 
 {% block content %}
-	<span style="display:none" id="groupJSON" data-groupJSON = "{{group_json}}">TEST</span>
+	<span style="display:none" id="userGroupsJSON" data-groupJSON = "{{group_json}}">TEST</span>
 	<!-- adding the scripts on top since we use them to generate our markup -->
 	<script src="../scripts/jquery.js"></script>
 	<script src="../scripts/knockout.js"></script>
@@ -15,6 +15,17 @@
 
 	<h2>Your feedpage // {{display_name}} //</h2>
 	<a href="{{status_url}}">Logout</a>
+	
+	<div>
+		<h4>search for groups</h4>
+		<p>Enter group name: <input type="text" data-bind="event:{ keyup : queryGroups }"></p>
+		<ul data-bind="foreach: groupQueryResults">
+			<li>
+				<img data-bind="attr: {src: image}">
+				<a data-bind="text: name, attr:{href: url}"></a>
+			</li>
+		</ul>
+	</div>
 	
 	<div>
 		<h4>Groups joined</h4>

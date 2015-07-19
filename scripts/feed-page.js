@@ -31,6 +31,8 @@ function FeedPageViewModel() {
 	self.currentGroup = ko.observable();
 	self.feed = ko.observable();
 	self.userPost = ko.observable();
+	//self.groupQueryString = ko.observable();
+	self.groupQueryResults = ko.observable();
 
 	//this flag saves us from polling server to get latest posts in feed
 	self.newFeedFlag = ko.observable(false);
@@ -240,9 +242,62 @@ function FeedPageViewModel() {
 		});
 	}
 
+	self.queryGroups = function(data, event) {
+		//initizlize static variables, happens only once
+		if (!self.queryGroups.activeRequest) {
+			self.queryGroups.activeRequest = false;
+		}
+
+		if (!self.queryGroups.timer){
+			self.queryGroups.timer = null;
+		}
+
+		//both the checks below must happen before we test for new pattern
+		
+		//check for previous incomplete request and abort it
+		if (self.queryGroups.activeRequest) {
+			self.queryGroups.activeRequest.abort();
+		}
+
+		//clear queued request that has not been sent
+		clearTimeout(self.queryGroups.timer);
+
+		var queryString = $.trim(event.target.value);
+		var pattern = /^[a-zA-Z0-9\s]{3,20}$/;
+		
+		if (!pattern.test(queryString)) {
+			self.groupQueryResults(null);
+			return false;
+		}
+		// if we come till here that means now we have something to query for
+
+		//set request to query for the current queryString
+		self.queryGroups.timer = setTimeout(function(){
+			
+			self.queryGroups.activeRequest = $.ajax({
+				url: '/ajax/group-text-search',
+				type: "GET",
+				dataType: "json",
+				data: {"q": queryString},
+				success: function(data) {
+					if (!data){
+						return false;
+					}
+					console.log("Searched", data.length);
+					self.groupQueryResults(data);
+				},
+
+				error: function() {
+					console.log("error at group text search");
+				}
+			});	
+
+		}, 800) //call after xyz milli seconds
+	}
+
 	function setGroups() {
 		console.log("setting groups");
-		var groupJSON = $("#groupJSON").attr("data-groupJSON");
+		var groupJSON = $("#userGroupsJSON").attr("data-groupJSON");
 		var groups = JSON.parse(groupJSON);
 
 		//return if user has joined no groups

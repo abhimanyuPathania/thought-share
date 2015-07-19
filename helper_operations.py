@@ -1,10 +1,35 @@
 
+# this cannot import from models, since it creates a circular import
+# due to models importing add_to_index(only this one)
+
 import time
+import logging
 
 from google.appengine.ext import ndb
 from google.appengine.api import memcache
+from google.appengine.api import search
+
+from helper_functions import build_suggestions 
+from helper_functions import process_query_string
 
 NOTF_NAMESPACE = 'notifications'
+USERS_NAMESPACE = 'users'
+
+def check_user_warm_cache(user_key):
+	user_id = user_key.id()
+	memcache_test = memcache.get(user_id, namespace = USERS_NAMESPACE)
+	# if user in cache, means account exists
+	if memcache_test:
+		return True
+	else:
+		user = user_key.get()
+		# not in memcache, but user exists -> put user in cache again
+		if user:
+			memcache.set(user_id, True, namespace = USERS_NAMESPACE)
+			return True
+		# user account needs to be created
+		else:
+			return False
 
 def add_user_name_image(target_list, users_key_list,
 						name_property = "poster_name",
@@ -62,3 +87,51 @@ def set_notification(notification, user_id):
 	else:
 		existing_notifications.append(notification)
 		memcache.set(user_id, existing_notifications, namespace = NOTF_NAMESPACE)
+
+#!!!!!!!!!handle put exception
+def add_to_index(group_id, group_name, group_image = None):
+	group_index = search.Index(name='groups')
+
+	group_document = search.Document(
+	    doc_id = group_id,
+	    fields=[
+		       	search.TextField(name='name', value=group_name),
+		       	search.TextField(name='suggestions', value=build_suggestions(group_name)),
+		       	search.AtomField(name='group_image', value=group_image),
+	       ])
+	group_index.put(group_document)
+	
+	# try:
+ #  		group_index.put(group_document)
+ #  	except search.Error:
+ #  		logging.exception('Group document put failed')
+
+def search_index(query_string):
+	URL_PREFIX = '/group/'
+	group_index = search.Index(name='groups')
+
+	query_options = search.QueryOptions(
+		limit = 12,
+		returned_fields = ['name', 'group_image']
+	)
+
+	query_string = process_query_string(query_string)
+	query = search.Query(query_string = query_string, options = query_options)
+	documents =  group_index.search(query)
+	if len(documents.results) == 0:
+		return None
+	
+	results = []
+	for doc in documents:
+		temp = {}
+		fields = doc.fields
+		temp["name"] = fields[0].value
+		temp["image"] = fields[1].value
+		temp["url"] = URL_PREFIX + doc.doc_id
+		results.append(temp)
+
+	return results
+
+
+
+

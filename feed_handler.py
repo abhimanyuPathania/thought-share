@@ -32,7 +32,7 @@ class FeedHandler(Handler):
 				#user exists but not in cache...re-update cache
 				memcache.set(user_id, True, namespace = 'users')
 
-
+		# if we have user in memcache
 		if not user:
 			#only query for existing users if not already queried due to cache
 			user = User.get_by_id(user_id)
@@ -52,7 +52,7 @@ class FeedHandler(Handler):
 		return self.render('feed.html', display_name = display_name,
 										group_json = group_json)
 
-class GetUserGroupsAjax(Handler):
+class GetUserGroupsHandler(Handler):
 	def get(self):
 		if not self.user:
 			return None

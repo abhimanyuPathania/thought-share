@@ -8,9 +8,10 @@ from google.appengine.api import memcache
 from google.appengine.api import images
 from google.appengine.ext import blobstore
 
-from helper_functions import (check_group_name, sanitize_group_name, get_group_id,
-							check_display_name)
-from helper_functions import BadUserInputError, EntityExistsError
+from helper_functions import *
+from helper_operations import add_to_index
+
+THUMBNAIL_SIZE = 100
 
 class User(ndb.Model):
 	email = ndb.StringProperty(required = True, indexed = False)
@@ -33,18 +34,16 @@ class User(ndb.Model):
 		return key
 
 	@classmethod
-	def edit_user(cls, user_id, display_name, image_blob_key):
+	def edit_user(cls, user_id, display_name, blob):
 
 		#check and sanitize display name
 		if display_name:
 			display_name = check_display_name(display_name)
-		full_image_url = None
-		thumbnail_url = None
 
-		if image_blob_key:
-			#create image service urls
-			full_image_url = images.get_serving_url(image_blob_key)
-			thumbnail_url = images.get_serving_url(image_blob_key, size = 100, crop = False)
+		image_blob_key = None
+		if blob:
+			check_uploaded_image(blob)
+			image_blob_key = blob.key()
 
         #fetch user entity
 		user = User.get_by_id(user_id)
@@ -52,19 +51,20 @@ class User(ndb.Model):
 		#update and save user according to the fields entered
 		if display_name:
 			user.display_name = display_name
+
 		if image_blob_key:
-			#delete the old blob
-			blobstore.delete([user.image_blob])
+			#delete the old blob and serving url if there
+			if user.image_blob:
+				images.delete_serving_url(user.image_blob)
+				blobstore.delete([user.image_blob])
 
-			#set new properties
+			#set new image properties
 			user.image_blob = image_blob_key
-			user.image_url = full_image_url
-			user.thumbnail_url = thumbnail_url
+			user.image_url = images.get_serving_url(image_blob_key)
+			user.thumbnail_url = images.get_serving_url(image_blob_key, size=THUMBNAIL_SIZE, crop=False)
 
-		if display_name or image_blob_key:
-			#put only if we are updating something
-			user.put()
-			return True
+		user.put()
+		return True
 
 class PrivateRequest(ndb.Model):
 	#group info
@@ -175,14 +175,14 @@ class Group(ndb.Model):
 	members = ndb.KeyProperty (kind = User, repeated = True)
 
 	@classmethod
-	def create_group(cls, name, description, creator, private, cover_image_blob_key):
+	def create_group(cls, name, description, creator, private, cover_image_blob):
 		
 		#first test for group name regular expression
 		#raises BadUserInputError on faliure
 		name_test = check_group_name(name)
 
 		#check if description is blank
-		if not description:
+		if not description or description.isspace():
 			raise BadUserInputError('please enter group description')
 
 		#get sanitized group name/id
@@ -194,6 +194,12 @@ class Group(ndb.Model):
 
 		if availability_test:
 			raise EntityExistsError('Group name taken')
+
+		#test for uploaded blob
+		cover_image_blob_key = None
+		if cover_image_blob:
+			check_uploaded_image(cover_image_blob)
+			cover_image_blob_key = cover_image_blob.key()
 
 		creator_user = creator.get()
 		new_group_key = ndb.Key(Group, group_id)
@@ -213,12 +219,14 @@ class Group(ndb.Model):
 				#add cover image fields if image uploaded
 				new_group.cover_image_blob_key = cover_image_blob_key
 				new_group.cover_image_url = images.get_serving_url(cover_image_blob_key)
-				new_group.cover_image_thumbnail = images.get_serving_url(cover_image_blob_key, size = 100)
+				new_group.cover_image_thumbnail = images.get_serving_url(cover_image_blob_key, size=THUMBNAIL_SIZE)
 			
 			creator_user.groups.append(new_group_key)
-			creator_user.put()
 
-			new_group.put()
+			#!!!!!!!!!!!!!!!!!!!both the below fields can cause exceptions
+			ndb.put_multi([creator_user, new_group])
+			add_to_index(group_id, group_name, new_group.cover_image_thumbnail)
+
 			return new_group_key
 
 	@classmethod
@@ -247,6 +255,53 @@ class Group(ndb.Model):
 
 			ndb.put_multi([user, group])
 			return True
+
+	@classmethod
+	def edit_group(cls, user_key, group_id, description, blob):
+
+		group = Group.get_by_id(group_id)
+
+		allowed = False
+		# only admins are allowed to edit private groups
+		if group.private:
+			allowed = user_key in group.admins
+
+		# only creator is allowed to edit the public group
+		else:
+			allowed = user_key == group.creator
+		if not allowed:
+			return None
+
+		# extra check for most probable mistake post
+		if not blob and description == group.description:
+			return None
+
+		if description and not description.isspace():
+			group.description = description
+
+		blob_key = None
+		if blob:
+			check_uploaded_image(blob)
+			blob_key = blob.key()
+
+		if blob_key:
+			#delete old image if there
+			if group.cover_image_blob_key:
+
+				#stop serving the blob via image service
+				images.delete_serving_url(group.cover_image_blob_key)
+
+				#delete the blob from blobstore
+				blobstore.delete([group.cover_image_blob_key])
+
+			#update to newly uploaded
+			group.cover_image_blob_key = blob_key
+			group.cover_image_url = images.get_serving_url(blob_key)
+			group.cover_image_thumbnail = images.get_serving_url(blob_key, size=THUMBNAIL_SIZE)
+
+		group.put()
+		return True
+
 
 	@classmethod
 	def leave_group(cls, user_key, group_key):
@@ -302,10 +357,17 @@ class GroupPost(ndb.Model):
 		return group_post_key
 
 	@classmethod
-	def fetch_posts_by_group(cls, group_id):
-		group_posts = GroupPost.query(GroupPost.group_id == group_id).order(-GroupPost.created).fetch()
-		if group_posts:
-			return group_posts
+	def fetch_posts_by_group(cls, group_id, limit, cursor):
+		q = GroupPost.query()
+		
+		# only get the posts with the given group id
+		q = q.filter(GroupPost.group_id == group_id)
+		q = q.order(-GroupPost.created)
+		
+		if limit:
+			group_posts = q.fetch(limit = limit)
 		else:
-			return None
+			#fetch all
+			group_posts = q.fetch()
 
+		return group_posts
