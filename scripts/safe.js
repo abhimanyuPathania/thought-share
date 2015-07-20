@@ -1,19 +1,19 @@
 
-
-function FeedPageViewModel() {
+define(['knockout', 'jquery', 'sammy', 'helper'], function(ko, $, Sammy, helper) {
+   
+return function feedPageViewModel() {
 
 	function PostNotification(n){
 		var self = this;
 
-		self.notificationText = setPostNotificationText(n)
+		self.notificationText = helper.getPostNotificationText(n)
 		self.postId = n.post_id;
 		self.groupId = n.group_id;
 		self.posterImage = n.poster_image;
 		self.timestamp = n.timestamp;
-		self.timestampText = fixPostNotificationTimestamp(n.timestamp, true);
+		self.timestampText = helper.getTimestampText(n.timestamp, true);
 	}
 	
-	var REQUEST_NTF_KEY = "ts-req-ntf-timestamp";
 	var POST_NTF_KEY = "ts-post-ntf-timestamp";
 	var stopPostNotificationPoll = false;
 	var self = this;
@@ -24,7 +24,7 @@ function FeedPageViewModel() {
 	self.currentGroup = ko.observable();
 	self.feed = ko.observable();
 	self.userPost = ko.observable();
-	//self.groupQueryString = ko.observable();
+
 	self.groupQueryResults = ko.observable();
 
 	//this flag saves us from polling server to get latest posts in feed
@@ -32,11 +32,8 @@ function FeedPageViewModel() {
 
 	self.postNotifications = ko.observable();
 	self.unreadPostNotifications = ko.observable(0);
-	self.requestNotifications = ko.observable();
-	self.unreadRequestNotifications = ko.observable(0);
-
+	
 	setGroupsAndUser();
-	doRequestNotificationsPolling();
 	doPostNotificationsPoll();
 
 	//---behaviour---//
@@ -166,7 +163,7 @@ function FeedPageViewModel() {
 				if(temp) {
 					//update timestampText on existing notifications
 					for (var i=0, l=temp.length; i<l; i++) {
-						temp[i].timestampText = fixPostNotificationTimestamp(temp[i].timestamp);
+						temp[i].timestampText = helper.getTimestampText(temp[i].timestamp);
 					}
 
 					// update the value of observables
@@ -194,52 +191,6 @@ function FeedPageViewModel() {
 		});
 	};
 
-	self.updateRequestNotificationsReadStatus = function() {
-		//since our req ntf are already ordered by latest
-		var latestTimestamp = self.requestNotifications()[0].timestamp;
-
-		//get and store the latest ntf timestamp
-		localStorage.setItem(REQUEST_NTF_KEY, latestTimestamp);
-
-		//set the unread no. to zero
-		self.unreadRequestNotifications(0);
-	}
-
-
-	self.completeRequest = function(n) {
-		// n is the request notification object
-		$.ajax({
-			url:"/ajax/complete-request",
-			type: "POST",
-			dataType: "json",
-			data: {"request_hash": n.request_hash},
-
-			success: function(resp) {
-				// on success we just update our view and remove that notification
-				if (!resp) {
-					return;
-				}
-				
-				var temp = self.requestNotifications();
-				for(var i=0, l=temp.length; i<l; i++){
-					if (temp[i].request_hash === n.request_hash){
-						temp[i].text = ("You have accepted " + temp[i].user_name +
-										"'s request");
-						temp[i].complete = true; 
-					}
-				}
-
-				//view does not get updated for some reason without destroying it
-				self.requestNotifications(null);
-				self.requestNotifications(temp);
-			},
-
-			error: function() {
-				console.log("Function: completeRequest", "something went wrong");
-			}
-
-		});
-	}
 
 	self.queryGroups = function(data, event) {
 		//initizlize static variables, happens only once
@@ -333,58 +284,6 @@ function FeedPageViewModel() {
 		});
 	}
 
-	function doRequestNotificationsPolling() {
-
-		$.ajax({
-			url: "/ajax/get-request-notifications",
-			type: "GET",
-			dataType: "json",
-			success: function(notifications){
-				if (!notifications){
-					return;
-				}
-				var storedTimestamp = parseInt(localStorage.getItem(REQUEST_NTF_KEY),10);
-				var unread = 0;
-
-				for(var i=0, l = notifications.length; i < l; ++i){
-					var ntfText = "";
-					var n=notifications[i]; //cosmetic
-
-					//add correct text to every req ntf
-					if (n.request_type === "join") {
-						ntfText = n.user_name + " is wants to join " + n.group_name;
-					}
-					if (n.request_type === "admin") {
-						ntfText = n.user_name + " is requsting adminship of " + n.group_name;
-					}
-					n["text"] = ntfText;
-
-					/*if we have a previous stored timestamp in local storage
-					then increase the counter for only those notificaions whose
-					 timestamp is more than that of stored one*/
-					if(storedTimestamp && n.timestamp > storedTimestamp) {
-						unread += 1;
-					}
-				}
-
-				//if we don't have a stored timestamp than all ntf are unread
-				if (!storedTimestamp) {
-					unread = notifications.length;
-				}
-
-				self.requestNotifications(notifications);
-				self.unreadRequestNotifications(unread);
-			},
-
-			error: function() {
-				console.log("something went wrong: Request notificaitons");
-			},
-
-			//change the settimeout time!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			complete: setTimeout(doRequestNotificationsPolling, 45000)
-		});
-	}
-
 	function fetchCurrentGroupFeed() {
 		console.log("fetchCurrentGroupFeed")
 		$.ajax({
@@ -400,7 +299,7 @@ function FeedPageViewModel() {
 
 				// use jquery map to add the timestamp text property to each post from feed
 				self.feed($.map(feed, function(post, i){
-					post["timestamp"] = fixPostNotificationTimestamp(post.created);
+					post["timestamp"] = helper.getTimestampText(post.created);
 					return post;
 				}));
 				//reset the newFeedFlag
@@ -437,79 +336,8 @@ function FeedPageViewModel() {
         		this.app.runRoute('get', defaultRoute);
         	}
     	});
-    }).run();    
+    }).run();
+
 }; // end view model
 
-
-function fixPostNotificationTimestamp(t, ntf){
-	//sent ntf as true to get "ago" appended textTimstamp
-	var SECONDS_IN_DAY = 24*60*60;
-	var miniMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-					  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-	//set timestamps
-	var now = Date.now();
-	var old = parseInt(t, 10);
-
-	var dateObjNow = new Date(now);
-	var dateObjOld = new Date(old*1000);
-
-	//use seconds diff to generate timestamp strings
-	now = Math.floor(now/1000);	//convert into seconds
-	var diff = now - old;
-	var result,
-		temp;
-
-	if (diff < SECONDS_IN_DAY){
-		if(diff <= 60){
-			result = "just a moment ago";
-		}
-
-		if(diff > 60 && diff < 3600){
-			temp = Math.floor(diff/60);
-			result = temp + " mins";
-		}
-
-		if(diff >= 3600){
-			temp = Math.floor(diff/3600);
-			result = temp + " hrs";
-		}
-
-		if(temp === 1) {
-			//remove the last 's' for '1 mins' or '1 hrs'
-			result = result.substring(0, result.length - 1);
-		}
-
-		if(ntf && diff > 60) {
-			//prepend with 'ago' for notifications timestamp
-			result += " ago";
-		}
-
-	} else {
-		//get local time here
-		if (dateObjNow.getFullYear() === dateObjOld.getFullYear()){
-			result = dateObjOld.getDate() + " " + miniMonths[dateObjOld.getMonth()];
-		} else {
-			result = dateObjOld.getDate() + " " + miniMonths[dateObjOld.getMonth()] + ", " + dateObjOld.getFullYear();
-		}
-	}
-	
-	return result;
-}
-
-function setPostNotificationText(n){
-	//can also try to inject html directly
-	if (n["type"] === "post"){
-		return n.poster_name + " posted in " + n.group_name;
-	}
-	if (n["type"] === "join"){
-		return n.poster_name + " has accepted your request to join "+ n.group_name;
-	}
-	if (n["type"] === "admin"){
-		return n.poster_name + " has accepted your request for adminship of "+ n.group_name;
-	}
-}
-
-$(document).ready(function(){
-	ko.applyBindings(new FeedPageViewModel());
-});
+}); // end define function

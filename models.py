@@ -11,7 +11,7 @@ from google.appengine.ext import blobstore
 from helper_functions import *
 from helper_operations import add_to_index
 
-THUMBNAIL_SIZE = 100
+from constants import THUMBNAIL_SIZE, USERS_NAMESPACE
 
 class User(ndb.Model):
 	email = ndb.StringProperty(required = True, indexed = False)
@@ -49,7 +49,7 @@ class User(ndb.Model):
 			new_user.thumbnail_url = images.get_serving_url(image_blob_key, size=THUMBNAIL_SIZE, crop=False)
 
 		# set the memcache and create account
-		memcache.set(user_id, True, namespace = 'users')
+		memcache.set(user_id, True, namespace = USERS_NAMESPACE)
 		new_user.put()
 
 	@classmethod
@@ -317,6 +317,9 @@ class Group(ndb.Model):
 			group.cover_image_blob_key = blob_key
 			group.cover_image_url = images.get_serving_url(blob_key)
 			group.cover_image_thumbnail = images.get_serving_url(blob_key, size=THUMBNAIL_SIZE)
+
+			#update the search index document to contain latest image url
+			add_to_index(group_id, group.name, group.cover_image_thumbnail)
 
 		group.put()
 		return True

@@ -1,0 +1,12 @@
+
+<h4>Post Notifications</h4>
+
+<button data-bind = "click: fetchPostNotification, enable: unreadPostNotifications() > 0"> Read</button>
+
+<p>you have <b data-bind = "text: unreadPostNotifications"></b> unread notificaitons</p>
+<ul data-bind= "foreach: postNotifications">
+	<li>
+		<p data-bind = "text: notificationText"></p>
+		<p><i data-bind = "text: timestampText"></i></p>
+	</li>
+</ul>

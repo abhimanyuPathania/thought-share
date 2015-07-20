@@ -13,6 +13,7 @@ from helper_functions import *
 from helper_operations import *
 from helper_db_operations import get_group_feed
 
+from constants import DEFAULT_USER_AVATAR, DFAULT_GROUP_IMAGE
 
 class CreateGroupHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 	def get(self):
@@ -101,6 +102,10 @@ class GroupLandingPageHandler(Handler):
 											  "admins"])
 		group_data["id"] = group_id
 
+		#add default group image if not present
+		if not group_data["cover_image_url"]:
+			group_data["cover_image_url"] = DFAULT_GROUP_IMAGE
+
 		#add the member,admin flags
 		group_data["member"] = member
 		group_data["admin"] = admin
@@ -139,7 +144,7 @@ class GroupLandingPageHandler(Handler):
 		#add creator information
 		creator = group.creator.get()
 		group_data["creator_name"] = creator.display_name
-		group_data["creator_image"] = creator.thumbnail_url
+		group_data["creator_image"] = creator.thumbnail_url or DEFAULT_USER_AVATAR
 
 		#add recent posts in group
 		#default value for private group and not member

@@ -12,8 +12,9 @@ from google.appengine.api import search
 from helper_functions import build_suggestions 
 from helper_functions import process_query_string
 
-NOTF_NAMESPACE = 'notifications'
-USERS_NAMESPACE = 'users'
+from constants import NOTF_NAMESPACE, USERS_NAMESPACE
+from constants import DEFAULT_USER_AVATAR, DFAULT_GROUP_IMAGE
+
 
 def check_user_warm_cache(user_key):
 	user_id = user_key.id()
@@ -38,7 +39,7 @@ def add_user_name_image(target_list, users_key_list,
 	users = ndb.get_multi(users_key_list)
 	for i in range(len(target_list)):
 		target_list[i][name_property] = users[i].display_name
-		target_list[i][image_property] = users[i].thumbnail_url
+		target_list[i][image_property] = users[i].thumbnail_url or DEFAULT_USER_AVATAR
 	return target_list
 
 def get_group_data(group_key_list, params):
@@ -117,7 +118,8 @@ def add_to_index(group_id, group_name, group_image = None):
  #  		logging.exception('Group document put failed')
 
 def search_index(query_string):
-	URL_PREFIX = '/group/'
+
+	group_url_prefix = '/group/'
 	group_index = search.Index(name='groups')
 
 	query_options = search.QueryOptions(
@@ -136,8 +138,8 @@ def search_index(query_string):
 		temp = {}
 		fields = doc.fields
 		temp["name"] = fields[0].value
-		temp["image"] = fields[1].value
-		temp["url"] = URL_PREFIX + doc.doc_id
+		temp["image"] = fields[1].value or DFAULT_GROUP_IMAGE
+		temp["url"] = group_url_prefix + doc.doc_id
 		results.append(temp)
 
 	return results

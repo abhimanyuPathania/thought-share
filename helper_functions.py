@@ -2,12 +2,9 @@
 import re
 import datetime
 
-#!!!!!!!!!!!!!!!!!!!!fix uper limit fot the reg ex, update in feed.js too if changes
-GROUP_NAME_RE = re.compile(r"^[a-zA-Z0-9\s]{3,20}$")
-DISPLAY_NAME_RE = re.compile(r"^[a-zA-Z0-9\s]{2,20}$")
-SECONDS_IN_DAY = 24*60*60
+from constants import GROUP_NAME_RE, DISPLAY_NAME_RE
+from constants import SECONDS_IN_DAY, MAX_IMAGE_SIZE_BYTES
 
-MAX_IMAGE_SIZE_BYTES = 10000000
 
 def check_group_name(name):
 	if not GROUP_NAME_RE.match(name):
@@ -51,7 +48,7 @@ def process_query_string(q):
 	key_words = q.split()
 	query_str_fixed = None
 
-	if (len(key_words) > 1) and (len(key_words) < 5):
+	if (len(key_words) > 1) and (len(key_words) < 4):
 		#fix OR
 		query_str_fixed = ' OR '.join(key_words)
 	else:

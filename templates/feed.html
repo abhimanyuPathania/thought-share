@@ -8,13 +8,8 @@
 {% block content %}
 	<span style="display:none" id="userGroupsJSON" data-groupJSON = "{{group_json}}"></span>
 	<span style="display:none" id="userJSON" data-userJSON = "{{user_json}}"></span>
-
-	<!-- adding the scripts on top since we use them to generate our markup -->
-	<script src="../scripts/jquery.js"></script>
-	<script src="../scripts/knockout.js"></script>
-	<script src="../scripts/sammy.js"></script>
-	<script src="../scripts/feed-page.js"></script>
-
+	
+	<script type="text/javascript" data-main="scripts/main.js" src="scripts/require.js"></script>
 	<h2>Your feedpage // {{display_name}} //</h2>
 	<a href="{{status_url}}">Logout</a>
 	
@@ -61,7 +56,7 @@
 		</li>
 	</ul>
 
-	<h4>Post Notifications</h4>
+	<!-- <h4>Post Notifications</h4>
 	<button data-bind = "click: fetchPostNotification, enable: unreadPostNotifications() > 0"> Read</button>
 	<p>you have <b data-bind = "text: unreadPostNotifications"></b> unread notificaitons</p>
 	<ul data-bind= "foreach: postNotifications">
@@ -69,14 +64,9 @@
 			<p data-bind = "text: notificationText"></p>
 			<p><i data-bind = "text: timestampText"></i></p>
 		</li>
-	</ul>
-
-	<h4>Request Notifications</h4>
-	<p>you have <b data-bind="text: unreadRequestNotifications"></b> request notifications</p>
-	<button data-bind = "click: updateRequestNotificationsReadStatus, enable: unreadRequestNotifications() > 0">OK! checked</button>
-	<ul data-bind="foreach: requestNotifications">
-		<li data-bind = "text: text"></li>
-		<button data-bind = "click: $root.completeRequest, visible:complete === false">accept</button>
-	</ul>
+	</ul> -->
+	
+	<post-notification params="parent: feedPageViewModelRef"></post-notification>
+	<request-notification></request-notification>
 
 {% endblock %}

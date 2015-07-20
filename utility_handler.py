@@ -21,6 +21,7 @@ class Handler(webapp2.RequestHandler):
 		webapp2.RequestHandler.initialize(self, *a, **kw)
 
 		self.user = None
+		self.account = False
 		logged_user = users.get_current_user()
 		if logged_user:
 			self.user = logged_user
