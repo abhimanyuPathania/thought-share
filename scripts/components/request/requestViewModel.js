@@ -1,118 +1,260 @@
-// Recommended AMD module pattern for a Knockout component that:
-//  - Can be referenced with just a single 'require' declaration
-//  - Can be included in a bundle using the r.js optimizer
-define(['knockout', 'text!components/request/requestTemplate.html'], function(ko, htmlString) {
-    function RequestViewModel() {
-    	var self = this;
 
-    	self.REQUEST_NTF_KEY = "ts-req-ntf-timestamp";
-        self.requestNotifications = ko.observable();
-		self.unreadRequestNotifications = ko.observable(0);
+define(['knockout',
+		'jquery', 
+		'helper',
+		'text!components/request/requestTemplate.html'], 
 
-		//start polling
-		doRequestNotificationsPolling()
+function(ko, $, helper, htmlString) {
 
-		self.updateRequestNotificationsReadStatus = function() {
+function RequestViewModel() {
+	
+var self = this;
+var REQUEST_NTF_KEY = "ts-req-ntf-timestamp"; 
+var requestDiv = $("#requests");
 
-			//since our req ntf are already ordered by latest
-			var latestTimestamp = self.requestNotifications()[0].timestamp;
+self.pollingTimestamp = null;
+self.fetchTimestamp = null;
 
-			//get and store the latest ntf timestamp
-			localStorage.setItem(self.REQUEST_NTF_KEY, latestTimestamp);
+self.requestNotifications = ko.observableArray();
+self.unreadRequestNotifications = ko.observable();
 
-			//set the unread no. to zero
-			self.unreadRequestNotifications(0);
-		};
+self.stopPolling = false;
 
-		self.completeRequest = function(n) {
+initialFetch();
 
-			// n is the request notification object
-			$.ajax({
-				url:"/ajax/complete-request",
-				type: "POST",
-				dataType: "json",
-				data: {"request_hash": n.request_hash},
+self.showRequests = function() {
+	requestDiv.toggle(500);
+	fetchRequestUpdates();
+}
 
-				success: function(resp) {
-					// on success we just update our view and remove that notification
-					if (!resp) {
-						return;
-					}
 
-					var temp = self.requestNotifications();
-					for(var i=0, l=temp.length; i<l; i++){
-						if (temp[i].request_hash === n.request_hash){
-							temp[i].text = ("You have accepted " + temp[i].user_name +
-											"'s request");
-							temp[i].complete = true; 
-						}
-					}
+self.completeRequest = function(req) {
 
-					//view does not get updated without destroying it
-					self.requestNotifications(null);
-					self.requestNotifications(temp);
-				},
+	// req is the request request object
+	$.ajax({
+		url:"/ajax/complete-request",
+		type: "POST",
+		dataType: "json",
+		data: {"request_hash": req.request_hash},
 
-				error: function() {
-					console.log("Function: completeRequest", "something went wrong");
+		success: function(resp) {
+			console.log("completeRequest", "success", resp);
+			// on success we just update our view and remove that notification
+			if (!resp) {
+				return;
+			}
+
+			var temp = self.requestNotifications();
+			for(var i=0, l=temp.length; i<l; i++){
+				if (temp[i].request_hash === req.request_hash){
+					temp[i].text = ("You have accepted " + temp[i].user_name +
+									"'s request");
+					temp[i].complete = true; 
 				}
+			}
 
-			});
-		}; // end complete request
+			console.log(temp);
+			//update View
 
-		//define polling function
-		function doRequestNotificationsPolling() {
-			$.ajax({
-				url: "/ajax/get-request-notifications",
-				type: "GET",
-				dataType: "json",
-				success: function(notifications){
-					if (!notifications){
-						return;
+			//valueHasMutated was not working
+			self.requestNotifications(null);
+			self.requestNotifications(temp);
+		},
+
+		error: function() {
+			console.log("completeRequest", "ERROR");
+		}
+
+	});
+}; // end complete request
+
+//define polling function
+function doRequestNotificationsPolling() {
+
+	if (self.stopPolling){
+		return;
+	}
+
+	//this does not send the fetch parameter
+	$.ajax({
+		url: "/ajax/update-request-notifications",
+		type: "GET",
+		dataType: "json",
+		data: {"timestamp": self.pollingTimestamp},
+
+		success: function(resp){
+			if (!resp){
+				// null when user is not admin to any group
+				return;
+			}
+			
+			if (resp.number === 0) {
+				//no new requests
+				return;
+			}
+
+			var reqNumber = resp.number + self.unreadRequestNotifications()
+			self.pollingTimestamp = resp.timestamp;
+			self.unreadRequestNotifications(reqNumber);
+		},
+
+		error: function() {
+			console.log("doRequestNotificationsPolling", "ERROR");
+		},
+
+		//change the settimeout time!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		complete: setTimeout(doRequestNotificationsPolling, 45000)
+	});
+};
+
+function fetchRequestUpdates() {
+
+	// don't fetch if nothing new and we already have something
+	if (!self.unreadRequestNotifications() && self.requestNotifications().length){
+		return;
+	}
+
+	//this request is only sent when there are some unread requests as 
+	//informed by the polling function
+	$.ajax({
+		url: "/ajax/update-request-notifications",
+		type: "GET",
+		dataType: "json",
+		data: {"timestamp": self.fetchTimestamp,
+			   "fetch" : true},
+
+		beforeSend : function() {
+			self.stopPolling = true;
+
+			/* these are required for the first fetch after the initial fetch to keep
+			   things in sync. For all later 'fetch' these will be redundant statements
+			*/
+			var currentRequests = self.requestNotifications()
+			self.unreadRequestNotifications(0);
+			if (currentRequests.length) {
+				localStorage.setItem(REQUEST_NTF_KEY, currentRequests[0].timestamp);
+			}
+		},
+
+		success: function(resp){
+			if (!resp){
+				// null when user is not admin to any group
+				return;
+			}
+			var data = resp.request_list;
+			var currentRequests = self.requestNotifications();
+
+			if (!data) {
+				// list is null for empty no requests
+				return false;
+			}
+			//loop in reverse and add to front of existing array
+			for(var i=data.length-1; i>=0; i--) {
+				data[i]["text"] = helper.getRequestText(data[i]);
+				data[i]["timestampText"] = helper.getTimestampText(data[i].timestamp, true);
+				currentRequests.unshift(data[i]);
+			}
+
+			//!!!!!!!!!!!!----------change the slcie to match MAX_NOTIFICATIONS_FETCHED
+			currentRequests = currentRequests.slice(0, 2)
+
+			self.fetchTimestamp = currentRequests[0].timestamp;
+			localStorage.setItem(REQUEST_NTF_KEY, currentRequests[0].timestamp);
+
+			self.unreadRequestNotifications(0);
+
+			//here too valueHasMutated was not working
+			self.requestNotifications(null);
+			self.requestNotifications(currentRequests);
+
+		},
+
+		error: function() {
+			console.log("fetchRequestUpdates", "ERROR");
+		},
+
+		complete: function () {
+			self.stopPolling = false;
+		}
+	});
+}
+
+
+// this is called only once and it sets all the observables and ViewModel properties
+// this will also call the polling function
+function initialFetch() {
+	// always called without sending cursor string
+
+	$.ajax({
+		url: "/ajax/get-request-notifications",
+		type: "GET",
+		dataType: "json",
+		data: {"initial_fetch" : true},
+
+		success: function(data){
+			/* data is an object with following properties
+			   'request_list', 'timestamp_list'
+			 */
+			if (!data.request_list){
+				// not requests to start with
+				self.pollingTimestamp = 0;
+				self.fetchTimestamp = 0;
+				self.unreadRequestNotifications(0);
+				return;
+			}
+
+			var requests = data.request_list;
+			var timestampList = data.timestamp_list; //array of incomplete req timestamps
+			var currentRequests = self.requestNotifications();
+			var initialUnread = 0;
+			var storedTimestamp = localStorage.getItem(REQUEST_NTF_KEY);
+			if (storedTimestamp) {
+				storedTimestamp = parseInt(storedTimestamp, 10);
+			}
+
+			//we received so requests
+			for (var i=0, l=requests.length; i<l; i++) {
+				requests[i]["text"] = helper.getRequestText(requests[i]);
+				requests[i]["timestampText"] = helper.getTimestampText(requests[i].timestamp, true);
+				currentRequests.push(requests[i]);
+			}
+
+			// intialize the intialUnread variable
+
+			/* if we have a storedTimestamp than unseen req will be the ones having
+			   their timestamp greater than it*/
+			if (storedTimestamp){
+				for (var i=0, l=timestampList.length; i<l; i++){
+					if (timestampList[i] > storedTimestamp) {
+						initialUnread += 1;
 					}
-					var storedTimestamp = parseInt(localStorage.getItem(self.REQUEST_NTF_KEY),10);
-					var unread = 0;
+				}	
+			} else{
+				// all of them are unseen
+				initialUnread = timestampList.length;
+			}
+			
 
-					for(var i=0, l = notifications.length; i < l; ++i){
-						var ntfText = "";
-						var n=notifications[i]; //cosmetic
+			self.pollingTimestamp = currentRequests[0].timestamp;
+			self.fetchTimestamp = currentRequests[0].timestamp;
 
-						//add correct text to every req ntf
-						if (n.request_type === "join") {
-							ntfText = n.user_name + " is wants to join " + n.group_name;
-						}
-						if (n.request_type === "admin") {
-							ntfText = n.user_name + " is requsting adminship of " + n.group_name;
-						}
-						n["text"] = ntfText;
+			self.unreadRequestNotifications(initialUnread);
+			self.requestNotifications.valueHasMutated();
+		},
 
-						/*if we have a previous stored timestamp in local storage
-						then increase the counter for only those notificaions whose
-						 timestamp is more than that of stored one*/
-						if(storedTimestamp && n.timestamp > storedTimestamp) {
-							unread += 1;
-						}
-					}
+		error: function() {
+			console.log("initialFetch", "ERROR");
+		},
 
-					//if we don't have a stored timestamp than all ntf are unread
-					if (!storedTimestamp) {
-						unread = notifications.length;
-					}
+		// kick off request polling after intial fetch
+		complete: doRequestNotificationsPolling
+	});
+}
 
-					self.requestNotifications(notifications);
-					self.unreadRequestNotifications(unread);
-				},
 
-				error: function() {
-					console.log("something went wrong: Request notificaitons");
-				},
+} //end view model
 
-				//change the settimeout time!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-				complete: setTimeout(doRequestNotificationsPolling, 45000)
-			});
-		};
-    } //end view model
- 
-    // Return component definition, this is used in main.js
-    return { viewModel: RequestViewModel, template: htmlString };
-});
+// Return component definition, this is used in main.js
+return { viewModel: RequestViewModel, template: htmlString };
+
+}); // end define

@@ -4,6 +4,7 @@ import datetime
 
 from constants import GROUP_NAME_RE, DISPLAY_NAME_RE
 from constants import SECONDS_IN_DAY, MAX_IMAGE_SIZE_BYTES
+from constants import MAX_NOTIFICATIONS_FETCHED
 
 
 def check_group_name(name):
@@ -13,7 +14,7 @@ def check_group_name(name):
 		return True
 
 def sanitize_group_name(name):
-    san_name = re.sub(r'[\s]{2,}', ' ', name).strip(' ')
+    san_name = re.sub(r'[\s]{2,}', ' ', name).strip()
     return san_name
     
 def get_group_id(name):
@@ -26,11 +27,12 @@ def check_display_name(name):
 		
 	if name and not DISPLAY_NAME_RE.match(name):
 		raise BadUserInputError('Invalid display name')
-	san_name = re.sub(r'[\s]{2,}', ' ', name).strip(' ')
+	san_name = re.sub(r'[\s]{2,}', ' ', name).strip()
 	return san_name
 
 def check_uploaded_image(blob_info):
-	if 'image' not in blob_info.content_type:
+	# don't allow non images and gifs
+	if 'image' not in blob_info.content_type or 'gif' in  blob_info.content_type:
 		raise BadImageError('Not an image file')
 
 	if blob_info.size > MAX_IMAGE_SIZE_BYTES:
@@ -48,7 +50,7 @@ def process_query_string(q):
 	key_words = q.split()
 	query_str_fixed = None
 
-	if (len(key_words) > 1) and (len(key_words) < 4):
+	if (len(key_words) > 1) and (len(key_words) < 3):
 		#fix OR
 		query_str_fixed = ' OR '.join(key_words)
 	else:
@@ -64,6 +66,18 @@ def build_suggestions(str):
             if len(prefix) >= 3:
                 suggestions.append(prefix)
     return ' '.join(suggestions)
+
+def delete_item(item_list, item_to_delete):
+    return [item for item in item_list if item != item_to_delete]
+
+def limit_notifications(list1, list2):
+	if len(list1) <= MAX_NOTIFICATIONS_FETCHED:
+		return list1, list2
+
+	list1 = list1[:MAX_NOTIFICATIONS_FETCHED]
+	list2 = list2[:MAX_NOTIFICATIONS_FETCHED]
+
+	return list1, list2
 
 def get_post_timestamp(dt):
 	now = datetime.datetime.utcnow()

@@ -5,13 +5,18 @@
 {% endblock %}
 
 {% block content %}
+<script data-main="../scripts/createUserMain" src="../scripts/require.js"></script>
 
 <h2>
 	Create your account
 </h2>
-<a href="{{status_url}}">Logout</a>
+<p>Linked google account: {{email}}</p>
 <div>
-	<form action="{{form_action}}" enctype="multipart/form-data" method="POST">
+	<p>Use another google account? <a href="{{status_url}}">Logout</a></p>
+</div>
+
+<div>
+	<form id="createUserForm" action="{{form_action}}" enctype="multipart/form-data" method="POST">
 		<div>
 			<h3>choose a display name</h3>
 			<input type="text" name="display_name">
@@ -24,6 +29,6 @@
 			<input type="submit" name="submit" value="Create">
 		</div>
 	</form>
-	{{error}}
+	<div id="error">{{error}}</div>	
 </div>
 {% endblock %}

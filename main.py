@@ -31,7 +31,8 @@ class LandingPageHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
         
         # only render the cerate user page if the user is not in db
         image_upload_url = blobstore.create_upload_url('/')
-        return self.render('create_user.html', form_action = image_upload_url)
+        return self.render('create_user.html', form_action = image_upload_url,
+                                               email= self.user.email())
 
     def post(self):
         if not self.user:
@@ -49,14 +50,12 @@ class LandingPageHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
         except IndexError:
             blob = None 
 
+        ## redirecting to '/' will automatically re-render the form
         if not display_name:
-            image_upload_url = blobstore.create_upload_url('/')
-            error = 'display name must be present'
             # delete orphan blob
             if blob:
                 blobstore.delete([blob.key()])
-            return self.render('create_user.html', error = error,
-                                                   form_action = image_upload_url)
+            return self.redirect('/')
 
         try:
             User.create_user(self.user_id, display_name, self.user.email(), blob)
@@ -65,20 +64,12 @@ class LandingPageHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
             # delete orphan blob
             if blob:
                 blobstore.delete([blob.key()])
-
-            #reacreate image upload url since the old one gives error
-            image_upload_url = blobstore.create_upload_url('/')
-            return self.render('create_user.html', error = e.value,
-                                                    form_action = image_upload_url)
+            return self.redirect('/')
         
         except BadImageError as e:
             #delete the incorrect blob uploaded
             blobstore.delete([blob.key()])
-
-            #re-create upload url and render back the form
-            image_upload_url = blobstore.create_upload_url('/')
-            return self.render('create_user.html', error = e.value,
-                                                    form_action = image_upload_url)
+            return self.redirect('/')
         
         # user account created, redirect to feed page
         return self.redirect('/feed')
@@ -86,9 +77,11 @@ class LandingPageHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 
 class DatastoreHandler(Handler):
     def get(self):
-        g = "group-1"
-        result = GroupPost.fetch_posts_by_group(group_id = g, limit = None, cursor = None)
-        self.render('datastore.html', result = result)
+        user = self.user_key.get()
+        result_tuple = PrivateRequest.fetch_requests(user.admin_groups, None, True)
+
+        self.render('datastore.html', result = result_tuple[0],
+                                      result2 = result_tuple[1])
         
 
 app = webapp2.WSGIApplication([
@@ -96,21 +89,26 @@ app = webapp2.WSGIApplication([
     ('/feed', FeedHandler),
     ('/view-profile', ViewProfileHandler),
     ('/edit-profile', EditProfileHandler),
+    ('/ajax/get-profile-data', ProfileDataHandler),  
     ('/create-group', CreateGroupHandler),
-    (r'/group/([a-z0-9-]{3,20})', GroupLandingPageHandler),
-    (r'/join-group/([a-z0-9-]{3,20})', GroupJoiningHandler),
-    (r'/admin-group/([a-z0-9-]{3,20})', GroupRequestAdminHandler),
-    (r'/leave-group/([a-z0-9-]{3,20})', GroupLeavingHandler),
-    (r'/edit-group/([a-z0-9-]{3,20})', GroupEditHandler),
+    (r'/group/([a-z0-9-]{3,50})', GroupLandingPageHandler),
+    (r'/ajax/join-group/([a-z0-9-]{3,50})', GroupJoiningHandler),
+    (r'/ajax/admin-group/([a-z0-9-]{3,50})', GroupRequestAdminHandler),
+    (r'/ajax/leave-group/([a-z0-9-]{3,50})', GroupLeavingHandler),
+    (r'/edit-group/([a-z0-9-]{3,50})', GroupEditHandler),
     ('/ajax/post-group', GroupPostHandler),
+    ('/ajax/delete-post', DeletePostHandler),
+    ('/ajax/edit-post', EditPostHandler),   
     ('/ajax/group-text-search', GroupTextSearchHandler),
     ('/generate-notifications/posts', NotificationWorkerHandler),
-    ('/ajax/get-user-groups', GetUserGroupsHandler),
-    ('/ajax/get-group-feed', GetGroupFeedHandler),
+    ('/ajax/get-group-feed', GetGroupFeedHandler), 
+    ('/ajax/update-group-feed', UpdateGroupFeedHandler),
     ('/ajax/check-post-notifications', CheckPostNotificationHandler),
     ('/ajax/get-post-notifications', GetPostNotificationsHandler),
     ('/ajax/get-request-notifications', RequestNotificationHandler),
+    ('/ajax/update-request-notifications', UpdateRequestHandler), 
     ('/ajax/complete-request', CompleteRequestHandler),
+    ('/ajax/delete-image', DeleteImageHandler),
     ('/datastore', DatastoreHandler)
 ], debug=True)   
 

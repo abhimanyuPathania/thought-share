@@ -11,7 +11,8 @@ from google.appengine.ext import blobstore
 from helper_functions import *
 from helper_operations import add_to_index
 
-from constants import THUMBNAIL_SIZE, USERS_NAMESPACE
+from constants import THUMBNAIL_SIZE, USERS_NAMESPACE, GROUP_DESCRIPTION_CHAR_LIMIT
+from constants import MAX_POSTS_FETCHED, MAX_NOTIFICATIONS_FETCHED
 
 class User(ndb.Model):
 	email = ndb.StringProperty(required = True, indexed = False)
@@ -127,10 +128,12 @@ class PrivateRequest(ndb.Model):
 
 			if req.request_type == 'join':
 				#add group key to User groups
-				target_user.groups.append(req.group_key)
+				if req.group_key not in target_user.groups:
+					target_user.groups.append(req.group_key)
 
 				#add user key to Group members
-				target_group.members.append(req.user_key)
+				if req.user_key not in target_group.members:
+					target_group.members.append(req.user_key)
 
 				#set the complete flag on request
 				req.complete = True
@@ -143,10 +146,12 @@ class PrivateRequest(ndb.Model):
 				if req.user_key in target_group.members and req.user_key not in target_group.admins:
 					
 					#add user_key to group admins list
-					target_group.admins.append(req.user_key)
+					if req.user_key not in target_group.admins:
+						target_group.admins.append(req.user_key)
 
 					#add group key to user's admin groups list
-					target_user.admin_groups.append(req.group_key)
+					if req.group_key not in target_user.admin_groups:
+						target_user.admin_groups.append(req.group_key)
 
 					#update the request's complete flag
 					req.complete = True
@@ -158,17 +163,57 @@ class PrivateRequest(ndb.Model):
 		return False
 
 	@classmethod
-	def fetch_notifications(cls, user_key):
-		#user_key of the user logged-in in the app fetching notifications if any
-		user = user_key.get()
-		if not user.admin_groups:
-			return None
-
-		q = PrivateRequest.query(ndb.AND(PrivateRequest.complete == False,
-										 PrivateRequest.group_key.IN(user.admin_groups)))
+	def fetch_requests(cls, user_admin_groups, cursor, initial_fetch = False):
 		
-		notifications = q.order(-PrivateRequest.timestamp).fetch()
-		return notifications
+		q = PrivateRequest.query(ndb.AND(PrivateRequest.complete == False,
+										 PrivateRequest.group_key.IN(user_admin_groups)))
+
+		q = q.order(-PrivateRequest.timestamp)
+		# this is to return correct number for intial request fetch in the component
+		# required since the the number of unread requests can be greater than our page
+		# size. But we still return only page size number of results
+
+		if initial_fetch:
+			# projection returns timestamps as well keys
+			projection = q.fetch( projection = [PrivateRequest.timestamp])
+			request_data = None
+			request_timestamps = None
+
+			if len(projection) > 0:
+				request_keys = []
+				request_timestamps = []
+				# extract entity key and timestamps
+				for p in projection:
+					request_keys.append(p.key)
+					request_timestamps.append(p.timestamp)
+				
+				# slice does not cause error if size of list is smaller
+				# this gives at-most 'MAX_NOTIFICATIONS_FETCHED'
+				request_data = ndb.get_multi(request_keys[:MAX_NOTIFICATIONS_FETCHED])
+
+			request_tuple = (request_data, request_timestamps)
+		else:
+			# this case is for the view profile page
+			request_tuple = q.fetch_page(MAX_NOTIFICATIONS_FETCHED, start_cursor = cursor)
+
+		return request_tuple
+
+	@classmethod
+	def get_updates(cls, user_admin_groups, timestamp, fetch):
+		q = PrivateRequest.query(ndb.AND(PrivateRequest.complete == False,
+										 PrivateRequest.group_key.IN(user_admin_groups)),
+										 PrivateRequest.timestamp > timestamp)
+		
+		q = q.order(-PrivateRequest.timestamp)
+
+		if not fetch:
+			# only fetch keys since we only require the number of results
+			keys = q.fetch(keys_only = True)
+			return keys
+		else:
+			# don't fetch more than the max limit
+			return q.fetch(limit = MAX_NOTIFICATIONS_FETCHED)
+
 
 	@classmethod
 	def test_existing_request(cls, user_key, group_key, request_type):
@@ -176,7 +221,7 @@ class PrivateRequest(ndb.Model):
 										 PrivateRequest.group_key == group_key,
 										 PrivateRequest.complete == False,
 										 PrivateRequest.request_type == request_type))
-		req = q.get(keys_only = True)
+		req = q.get()
 		return req
 
 class Group(ndb.Model):
@@ -203,6 +248,9 @@ class Group(ndb.Model):
 		#check if description is blank
 		if not description or description.isspace():
 			raise BadUserInputError('please enter group description')
+
+		if len(description) > 600:
+			raise BadUserInputError('group description exceeds limit')
 
 		#get sanitized group name/id
 		group_name = sanitize_group_name(name)
@@ -232,7 +280,8 @@ class Group(ndb.Model):
 			if private:
 				new_group.private = True
 				new_group.admins = [creator]
-				creator_user.admin_groups.append(new_group_key)
+				if new_group_key not in creator_user.admin_groups:
+					creator_user.admin_groups.append(new_group_key)
 
 			if cover_image_blob_key:
 				#add cover image fields if image uploaded
@@ -240,7 +289,8 @@ class Group(ndb.Model):
 				new_group.cover_image_url = images.get_serving_url(cover_image_blob_key)
 				new_group.cover_image_thumbnail = images.get_serving_url(cover_image_blob_key, size=THUMBNAIL_SIZE)
 			
-			creator_user.groups.append(new_group_key)
+			if new_group_key not in creator_user.groups:
+				creator_user.groups.append(new_group_key)
 
 			#!!!!!!!!!!!!!!!!!!!both the below fields can cause exceptions
 			ndb.put_multi([creator_user, new_group])
@@ -267,10 +317,12 @@ class Group(ndb.Model):
 			return True
 		else:
 			#add group key to User's groups list
-			user.groups.append(group_key)
+			if group_key not in user.groups:
+				user.groups.append(group_key)
 
 			#add user key to Group members
-			group.members.append(user_key)
+			if user_key not in group.members:
+				group.members.append(user_key)
 
 			ndb.put_multi([user, group])
 			return True
@@ -281,12 +333,11 @@ class Group(ndb.Model):
 		group = Group.get_by_id(group_id)
 
 		allowed = False
-		# only admins are allowed to edit private groups
 		if group.private:
+			# only admins are allowed to edit private groups
 			allowed = user_key in group.admins
-
-		# only creator is allowed to edit the public group
 		else:
+			# only creator is allowed to edit the public group
 			allowed = user_key == group.creator
 		if not allowed:
 			return None
@@ -295,7 +346,7 @@ class Group(ndb.Model):
 		if not blob and description == group.description:
 			return None
 
-		if description and not description.isspace():
+		if description and not description.isspace() and len(description) <= GROUP_DESCRIPTION_CHAR_LIMIT:
 			group.description = description
 
 		blob_key = None
@@ -333,35 +384,40 @@ class Group(ndb.Model):
 
 		if group_key not in user.groups:
 			return False
-		else:
-			user.groups.remove(group_key)
-			group.members.remove(user_key)
 
-			if group.private:
-				# check/del for existing admin request by the user in leaving group
-				req_key = PrivateRequest.test_existing_request(user_key, group_key, 'admin')
-				if req_key:
-					req_key.delete()
-				
-				# if leaving user is also an admin
-				if user_key in group.admins:
-					# remove user from admin list
-					group.admins.remove(user_key)
+		user.groups = delete_item(user.groups, group_key)
+		group.members = delete_item(group.members, user_key)
+		# user.groups.remove(group_key)
+		# group.members.remove(user_key)
 
-					# remove group from user's admin_groups
-					user.admin_groups.remove(group_key)
+		if group.private:
+			# check/del for existing admin request by the user in leaving group
+			req_key = PrivateRequest.test_existing_request(user_key, group_key, 'admin')
+			if req_key:
+				req_key.delete()
+			
+			# if leaving user is also an admin
+			if user_key in group.admins:
+				# remove user from admin list
+				# group.admins.remove(user_key)
+				group.admins = delete_item(group.admins, user_key)
 
-			ndb.put_multi([user, group])
-			return True
+				# remove group from user's admin_groups
+				# user.admin_groups.remove(group_key)
+				user.admin_groups = delete_item(user.admin_groups, group_key)
+
+		ndb.put_multi([user, group])
+		return True
 
 class GroupPost(ndb.Model):
 	group_id = ndb.StringProperty(required = True, indexed = True)
+	group_name = ndb.StringProperty(required = True, indexed = False)
 	user_id = ndb.StringProperty(required = True, indexed = True)
 	post = ndb.TextProperty(required = True, indexed = False)
 	created = ndb.IntegerProperty(required = True, indexed = True)
 
 	@classmethod
-	def create_group_post(cls, group_id, user_id, post):
+	def create_group_post(cls, group_id, group_name, user_id, post):
 		group_post_id = GroupPost.allocate_ids(size=1)[0]
 
 		# isspace checks if post only has spaces, newlines or tabs
@@ -371,25 +427,45 @@ class GroupPost(ndb.Model):
 		#call strip on post to remove extra white space on start/end
 		group_post = GroupPost(id = group_post_id,
 								group_id = group_id,
+								group_name = group_name,
 								user_id = user_id,
 								post = post.strip(),
 								created = int(time.time()))
+		#create a post_data to be returned to the viewmodel
+		#poster information is added from the user model in client itself
+		post_data = group_post.to_dict()
+		post_data["post_id"] = group_post.key.urlsafe()
 
 		group_post_key = group_post.put()
-		return group_post_key
+		return group_post_key, post_data
 
 	@classmethod
-	def fetch_posts_by_group(cls, group_id, limit, cursor):
+	def fetch_posts(cls, group_id, user_id, cursor):
+		#cursor is the Cursor object
+		q = GroupPost.query()
+		
+		# only get the posts with the given parameter
+		if group_id:
+			q = q.filter(GroupPost.group_id == group_id)
+
+		if user_id:
+			q = q.filter(GroupPost.user_id == user_id)
+
+		q = q.order(-GroupPost.created)
+		
+		# start_cursor has a default value of None
+		fetch_page_tuple = q.fetch_page(MAX_POSTS_FETCHED, start_cursor = cursor)
+		return fetch_page_tuple
+
+
+	@classmethod
+	def fetch_post_updates(cls, group_id, timestamp):
 		q = GroupPost.query()
 		
 		# only get the posts with the given group id
 		q = q.filter(GroupPost.group_id == group_id)
+		# fetch posts later than provided timestamp
+		q = q.filter(GroupPost.created > timestamp)
 		q = q.order(-GroupPost.created)
-		
-		if limit:
-			group_posts = q.fetch(limit = limit)
-		else:
-			#fetch all
-			group_posts = q.fetch()
 
-		return group_posts
+		return q.fetch()

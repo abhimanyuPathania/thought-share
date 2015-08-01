@@ -5,12 +5,15 @@ import logging
 from google.appengine.ext import ndb
 from google.appengine.api import memcache
 from google.appengine.api import taskqueue
+from google.appengine.datastore.datastore_query import Cursor
 
 from utility_handler import Handler
 from models import PrivateRequest
 from helper_operations import *
 
-NOTF_NAMESPACE = 'notifications'
+from constants import NOTF_NAMESPACE
+from constants import MAX_NOTIFICATIONS_FETCHED
+
 
 #!!!!!!---------------make the admin only
 class NotificationWorkerHandler(Handler):
@@ -41,32 +44,118 @@ def create_notifications(user_key_list, worker_params):
 		taskqueue.add(url='/generate-notifications/posts', params = worker_params)
 
 class RequestNotificationHandler(Handler):
+	# /ajax/get-request-notifications
+
 	def get(self):
 		if not self.account:
-			return self.redirect('/')
+			return self.fail_ajax()
 
-		notifications = PrivateRequest.fetch_notifications(self.user_key)
-		if not notifications:
-			return self.render_json(None)
+		#user_key of the user logged-in in the app fetching notifications if any
+		user = self.user_key.get()
+		cursor_str = self.request.get('cursor_str')
+		initial_fetch = self.request.get('initial_fetch')
+
+		if initial_fetch:
+			requests_result = {
+				'request_list': None,
+				'timestamp_list': None,
+			}
+		else:
+			requests_result = {
+				'request_list': None,
+				'cursor_str': None,
+				'more': None
+			}
+
+		# requesting user is not admin of any group, so there connot be any requests
+		if not user.admin_groups:
+			return self.render_json(requests_result)
+
+		cursor = None
+		if cursor_str:
+			cursor = Cursor(urlsafe = cursor_str)
+
+		if initial_fetch:
+			# (results, timestamp_list)
+			requests_tuple = PrivateRequest.fetch_requests(user.admin_groups,
+														   cursor, initial_fetch=True)
+		else:
+			# (results, cursor, more)
+			requests_tuple = PrivateRequest.fetch_requests(user.admin_groups,
+														   cursor, initial_fetch=True)
+
+		# both tuples return list of requests as first item
+		if not requests_tuple[0]:
+			return self.render_json(requests_result)
+
+		if initial_fetch:
+			requests_result['request_list'] = requests_tuple[0]
+			requests_result['timestamp_list'] = requests_tuple[1]
+		else:
+			requests_result['request_list'] = requests_tuple[0]
+			requests_result['cursor_str'] = (requests_tuple[1].urlsafe() if requests_tuple[1] else None)
+			requests_result['more'] = requests_tuple[2]
 
 		ntf_list = []
 		user_key_list = []
-		for n in notifications:
-			ntf_list.append(n.to_dict(exclude = ["group_key","user_key"]))
-			user_key_list.append(n.user_key)
+		for req in requests_result['request_list']:
+			ntf_list.append(req.to_dict(exclude = ["group_key","user_key"]))
+			user_key_list.append(req.user_key)
 
-		ntf_list = add_user_name_image(ntf_list, user_key_list,
-									   name_property = "user_name",
-									   image_property = "user_image")
-		
-		# users = ndb.get_multi(user_key_list)
-		# for i in range(len(ntf_list)):
-		# 	ntf_list[i]["user_name"] = users[i].display_name
-		# 	ntf_list[i]["user_image"] = users[i].thumbnail_url
-		return self.render_json(ntf_list)
+		requests_result['request_list'] = add_user_name_image(ntf_list, user_key_list,
+									   						  name_property = "user_name",
+									   						  image_property = "user_image")
+
+		return self.render_json(requests_result)
+
+class UpdateRequestHandler(Handler):
+	# /ajax/update-request-notifications
+
+	def get(self):
+		if not self.account:
+			return self.fail_ajax()
+
+		user = self.user_key.get()
+		if not user.admin_groups:
+			return self.render_json(None)
+
+		timestamp = int(self.request.get('timestamp'))
+		fetch = self.request.get('fetch')
+
+		result = PrivateRequest.get_updates(user.admin_groups, timestamp, fetch)
+		if not fetch:
+			# only asking for number
+			if not result:
+				#no update
+				return self.render_json({'number': 0, 'timestamp':None})
+			else:
+				# add the latest timestamp to track the number of requests
+				# it will be sent during next poll
+
+				# since result is ordered list of keys
+				latest_timestamp = result[0].get().timestamp
+				return self.render_json({'number': len(result),
+										 'timestamp': latest_timestamp})
+		else:
+			#require to send back data
+			request_dict = {'request_list': None}
+			if not result:
+				return self.render_json(request_dict)
+
+			ntf_list = []
+			user_key_list = []
+			for req in result:
+				ntf_list.append(req.to_dict(exclude = ["group_key","user_key"]))
+				user_key_list.append(req.user_key)
+
+			request_dict['request_list'] = add_user_name_image(ntf_list, user_key_list,
+										   						  name_property = "user_name",
+										   						  image_property = "user_image")
+			return self.render_json(request_dict)
 
 class CompleteRequestHandler(Handler):
 	# /ajax/complete-request
+
 	def post(self):
 		if not self.account:
 			return self.redirect('/')
@@ -75,10 +164,10 @@ class CompleteRequestHandler(Handler):
 		admin_id = self.user.user_id()
 
 		# This query is placed out of the transactional PrivateRequest.complete_request 
-		# since only projection queries are allowed inside
+		# since only ancestor queries are allowed inside
 		req = PrivateRequest.query(PrivateRequest.request_hash == request_hash).get()
-		if not req:
-			return self.render_json(None);
+		if not req or (req and req.complete):
+			return self.fail_ajax();
 
 		# get back target group entity to set notification
 		target_group = PrivateRequest.complete_request(admin_id, req)
@@ -104,40 +193,8 @@ class GetPostNotificationsHandler(Handler):
 
 		# timestamp is sent 0; if client has not prior notifications in model
 		timestamp = int(self.request.get('timestamp'))
-		notifications = memcache.get(self.user_id, namespace = NOTF_NAMESPACE)		
-		if not notifications:
-			return self.render_json(None)
-
-		#the notifications added to unread_ntf will be viewed by user
-		#hence we have to set the 'read' to True beforehand (problamatic if req fails)
-		unread_ntf = []
-		unread_keys = []
-
-		#fetch all for zero timestamp
-		#this runs the first time when user fetches notifications on app refresh
-		if timestamp == 0:
-			for n in reversed(notifications):
-				n['read'] = True
-				unread_ntf.append(n)
-				unread_keys.append(ndb.Key(urlsafe=n['poster_key']))
-		
-		# sent timestamp will be always <= any new notification since we always send
-		# a '0' timestamp at first run of app no matter what and this 'url'
-		# in not called till we have new notifications
-		if timestamp > 0:
-			for n in reversed(notifications):
-				#only choose the new notifications
-				if n['timestamp'] > timestamp:
-					n['read'] = True
-					unread_ntf.append(n)
-					unread_keys.append(ndb.Key(urlsafe=n['poster_key']))
-
-		#update memcache
-		memcache.set(self.user_id, notifications, namespace = NOTF_NAMESPACE)
-
-		#add updated user names and images to notifications
-		unread_ntf = add_user_name_image(unread_ntf, unread_keys)
-		return self.render_json(unread_ntf)
+		notifications = get_post_notifications(self.user_id, timestamp)
+		return self.render_json(notifications)
 
 class CheckPostNotificationHandler(Handler):
 	# /ajax/check-post-notifications
@@ -146,38 +203,46 @@ class CheckPostNotificationHandler(Handler):
 		if not self.account:
 			return None
 
+		result = {
+			'exist':None,
+			'number':0
+		}
 		num = 0
 		notifications = memcache.get(self.user_id, namespace = NOTF_NAMESPACE)
 		if not notifications:
-			return self.render_json(num)
+			# user has no read/unread notifications
+			return self.render_json(result)
 
 		for n in notifications:
 			if not n['read']:
 				num += 1
 
-		return self.render_json(num)
+		result['exist'] = True
+		result['number'] = num
+
+		return self.render_json(result)
 
 
 
-class UpdatePostNotificationsStatus(Handler):
-	#since this request causes persistent changes, use a post
-	def post(self):
-		if not self.account:
-			return None
+# class UpdatePostNotificationsStatus(Handler):
+# 	#since this request causes persistent changes, use a post
+# 	def post(self):
+# 		if not self.account:
+# 			return None
 
-		timestamp = int(self.request.get("timestamp"))
-		notifications = memcache.get(self.user_id, namespace = NOTF_NAMESPACE)
-		if not notifications:
-			return None
+# 		timestamp = int(self.request.get("timestamp"))
+# 		notifications = memcache.get(self.user_id, namespace = NOTF_NAMESPACE)
+# 		if not notifications:
+# 			return None
 
-		#if the timestamp sent by client is newer(greater) than that of notification
-		#mark it as read
-		for n in notifications:
-			if timestamp >= int(n["timestamp"]):
-				n["read"] = True
+# 		#if the timestamp sent by client is newer(greater) than that of notification
+# 		#mark it as read
+# 		for n in notifications:
+# 			if timestamp >= int(n["timestamp"]):
+# 				n["read"] = True
 
-		memcache.set(self.user_id, notifications, namespace = NOTF_NAMESPACE)
-		return self.render_json(True);
+# 		memcache.set(self.user_id, notifications, namespace = NOTF_NAMESPACE)
+# 		return self.render_json(True);
 
 
 

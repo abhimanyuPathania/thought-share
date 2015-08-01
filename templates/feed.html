@@ -9,21 +9,16 @@
 	<span style="display:none" id="userGroupsJSON" data-groupJSON = "{{group_json}}"></span>
 	<span style="display:none" id="userJSON" data-userJSON = "{{user_json}}"></span>
 	
-	<script type="text/javascript" data-main="scripts/main.js" src="scripts/require.js"></script>
+	<script type="text/javascript" data-main="../scripts/feedMain" src="../scripts/require.js"></script>
 	<h2>Your feedpage // {{display_name}} //</h2>
 	<a href="{{status_url}}">Logout</a>
 	
 	<div>
-		<h4>search for groups</h4>
-		<p>Enter group name: <input type="text" data-bind="event:{ keyup : queryGroups }"></p>
-		<ul data-bind="foreach: groupQueryResults">
-			<li>
-				<img data-bind="attr: {src: image}">
-				<a data-bind="text: name, attr:{href: url}"></a>
-			</li>
-		</ul>
+		<post-notification params="parent: feedPageViewModelRef"></post-notification>
+		<request-notification></request-notification>
+		<group-search></group-search>	
 	</div>
-	
+
 	<div>
 		<h4>Groups joined</h4>
         <ul data-bind="foreach: groups">
@@ -47,26 +42,31 @@
     <!-- /ko -->
 	<ul data-bind = "foreach: feed">
 		<li>
-			<p>
+			<div>
 				<img data-bind = "attr: {src: poster_image}">
 				<b data-bind = "text: poster_name"></b>
-				<i data-bind = "text: timestamp"></i>
-			</p>
-			<p data-bind = "text: post"></p>
+				<i data-bind = "text: timestampText"></i>
+			</div>
+			<div data-bind="visible: !editing()">
+				<p data-bind = "text: post"></p>
+				<!-- ko if: $root.user.id === user_id -->
+					<div>
+						<button type="button" data-bind="click: $root.editPost">Edit</button>
+						<button type="button" data-bind="click: $root.deletePost">Delete</button>
+					</div>
+			    <!-- /ko -->
+			</div>
+			<!-- ko if: $root.user.id === user_id -->
+				<div data-bind="visible: editing()">
+					<textarea cols="25" rows="2" data-bind="textInput: post"></textarea>
+					<div>
+						<button type="button" data-bind="click: $root.saveEdit">Save</button>
+						<button type="button" data-bind="click: $root.cancelEdit">Cancel</button>
+					</div>
+				</div>
+			<!-- /ko -->
 		</li>
 	</ul>
-
-	<!-- <h4>Post Notifications</h4>
-	<button data-bind = "click: fetchPostNotification, enable: unreadPostNotifications() > 0"> Read</button>
-	<p>you have <b data-bind = "text: unreadPostNotifications"></b> unread notificaitons</p>
-	<ul data-bind= "foreach: postNotifications">
-		<li>
-			<p data-bind = "text: notificationText"></p>
-			<p><i data-bind = "text: timestampText"></i></p>
-		</li>
-	</ul> -->
+	<button data-bind="visible: moreFeed(), click: fetchMorePosts">Show more posts</button>
 	
-	<post-notification params="parent: feedPageViewModelRef"></post-notification>
-	<request-notification></request-notification>
-
 {% endblock %}

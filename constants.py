@@ -3,8 +3,8 @@ import re
 
 ## helper_functions
 #!!!!!!!!!!!!!!!!!!!!fix uper limit fot the reg ex, update in feed.js too if changes
-GROUP_NAME_RE = re.compile(r"^[a-zA-Z0-9\s]{3,20}$")
-DISPLAY_NAME_RE = re.compile(r"^[a-zA-Z0-9\s]{2,20}$")
+GROUP_NAME_RE = re.compile(r"^[a-zA-Z0-9\s]{3,50}$")
+DISPLAY_NAME_RE = re.compile(r"^[a-zA-Z0-9\s]{2,50}$")
 SECONDS_IN_DAY = 24*60*60
 MAX_IMAGE_SIZE_BYTES = 10000000
 
@@ -22,3 +22,12 @@ DFAULT_GROUP_IMAGE = '../images/defaults/group.png'
 
 ## models
 THUMBNAIL_SIZE = 100
+
+## models
+GROUP_DESCRIPTION_CHAR_LIMIT = 600
+
+## helper function
+MAX_NOTIFICATIONS_FETCHED = 2 # SET TO 15
+
+## models
+MAX_POSTS_FETCHED = 2 # SET TO 15 or 20 or 10

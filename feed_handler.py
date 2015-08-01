@@ -9,6 +9,7 @@ from utility_handler import Handler
 from models import User, Group
 
 from helper_operations import get_group_data
+from constants import DEFAULT_USER_AVATAR
 
 class FeedHandler(Handler):
 	def get(self):
@@ -24,6 +25,13 @@ class FeedHandler(Handler):
 
 		# add user's data from client side user object
 		user_data = user.to_dict(exclude = ['image_blob', 'admin_groups', 'groups'])
+		
+		# add default images if required
+		if not user.image_blob:
+			user_data["thumbnail_url"] = DEFAULT_USER_AVATAR
+			user_data["image_url"] = DEFAULT_USER_AVATAR
+
+		#add user id
 		user_data['id'] = self.user_id
 		user_json = json.dumps(user_data)
 
@@ -32,6 +40,8 @@ class FeedHandler(Handler):
 										user_json = user_json)
 
 class GetUserGroupsHandler(Handler):
+	# /ajax/get-user-groups (currently unused)
+	
 	def get(self):
 		if not self.account:
 			return None

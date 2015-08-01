@@ -5,15 +5,24 @@
 	<title>create group</title>
 </head>
 <body>
+	<script data-main="../scripts/createGroupMain" src="../scripts/require.js"></script>
+	
+	<div>
+		<post-notification params="parent: null"></post-notification>
+		<request-notification></request-notification>
+	</div>
+
 	<h2>create new group</h2>
-	<form method="POST" action="{{form_action}}" enctype="multipart/form-data">
+	<form id= "createGroupForm" method="POST" action="{{form_action}}" enctype="multipart/form-data">
 		<div>
 			<label for="">Group name</label>
 			<input type="text" name="name" id="" value="{{name}}">
+			<span id="nameAvailable" data-name-available=""></span>
 		</div>
 		<div>
 			<label for="">Group description</label>
 			<textarea name="description" id="" cols="30" rows="10">{{description}}</textarea>
+			<span id="descCount">600</span>
 		</div>
 		<div>
 			<label for="">Cover image</label>
@@ -26,7 +35,7 @@
 		<div>
 			<input type="submit" value="Create!">
 		</div>
-		<div>
+		<div id="error">
 			{{error}}
 		</div>
 	</form>

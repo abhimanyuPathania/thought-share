@@ -1,12 +1,15 @@
 
 <h4>Post Notifications</h4>
 
-<button data-bind = "click: fetchPostNotification, enable: unreadPostNotifications() > 0"> Read</button>
+<button data-bind = "click: displayNotifications">Read</button>
 
-<p>you have <b data-bind = "text: unreadPostNotifications"></b> unread notificaitons</p>
-<ul data-bind= "foreach: postNotifications">
-	<li>
-		<p data-bind = "text: notificationText"></p>
-		<p><i data-bind = "text: timestampText"></i></p>
-	</li>
-</ul>
+<p>You have <b data-bind = "text: unreadPostNotifications"></b> unread notificaitons</p>
+<div id="notifications" style="display:none;">
+	<h4>Notifications</h4>
+	<ul data-bind= "foreach: postNotifications">
+		<li>
+			<p data-bind = "text: notificationText"></p>
+			<p><i data-bind = "text: timestampText"></i></p>
+		</li>
+	</ul>
+</div>

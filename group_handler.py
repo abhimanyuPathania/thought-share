@@ -11,7 +11,7 @@ from models import *
 from notification_handler import create_notifications
 from helper_functions import *
 from helper_operations import *
-from helper_db_operations import get_group_feed
+from helper_db_operations import *
 
 from constants import DEFAULT_USER_AVATAR, DFAULT_GROUP_IMAGE
 
@@ -95,7 +95,6 @@ class GroupLandingPageHandler(Handler):
 		# start to build group_data dictionary
 		# exclude what is not required or cannot be added directly by the method
 		group_data = group.to_dict(exclude = ["cover_image_blob_key", 
-											  "cover_image_thumbnail",
 											  "created",
 											  "creator",
 											  "members",
@@ -103,13 +102,19 @@ class GroupLandingPageHandler(Handler):
 		group_data["id"] = group_id
 
 		#add default group image if not present
+		group_data["default_image"] = False
 		if not group_data["cover_image_url"]:
 			group_data["cover_image_url"] = DFAULT_GROUP_IMAGE
+			group_data["cover_image_thumbnail"] = DFAULT_GROUP_IMAGE
+			group_data["default_image"] = True
 
 		#add the member,admin flags
 		group_data["member"] = member
 		group_data["admin"] = admin
 		group_data["render_edit"] = allowed_to_edit
+
+		if allowed_to_edit:
+			group_data["form_action"] = blobstore.create_upload_url('/edit-group/' + group_id)
 
 		# add flags to render join/request admin/leave buttons
 		# if group is private, check if user has any join/admin requests
@@ -153,19 +158,25 @@ class GroupLandingPageHandler(Handler):
 		#poster_info is a flag for jinja to add poster tags of not
 		group_data["poster_info"] = False
 		if member:
-			recent_posts = get_group_feed(group_id, limit = 10)
+			recent_posts_data = get_feed(group_id = group_id,
+											   cursor_str=None,
+											   add_poster = True)
+
+			recent_posts = recent_posts_data["post_list"]
 			group_data["poster_info"] = True
 		else:
-			#not a group member
+			# not a group member
 			if not group.private:
-				#public group/not member
-				#don't add poster imformations
-				recent_posts = get_group_feed(group_id, add_poster = False, limit = 10)
+				# public group/not member
+				# don't add poster imformations
+				recent_posts_data = get_feed(group_id = group_id,
+												   cursor_str = None,
+												   add_poster = False)
+				recent_posts = recent_posts_data["post_list"]
 		
 		group_data["recent_posts"] = recent_posts
 
 		#set seperate group_json to be used by Javascript
-		#!!!!!!!!!!!!!add image url, form url's for the editing modal
 		group_json = {"name": group_data["name"],
 					  "id": group_data["id"],
 					  "private": group_data["private"]}
@@ -173,40 +184,14 @@ class GroupLandingPageHandler(Handler):
 		return self.render('group_landing_page.html', g = group_data,
 													  group_json = json.dumps(group_json))
 
-#!!!!!!!!!!!!!!!!!!!!!---------add the option to remove photo
 class GroupEditHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
-	# /update-group/([a-z0-9-]{3,20})
-	
-	def get(self, group_id):
-		if not self.account:
-			return self.redirect('/')
-
-		group = Group.get_by_id(group_id)
-		user_key = self.user_key
-		if not group:
-			return None
-
-		allowed = None
-		if group.private:
-			allowed = user_key in group.admins
-		else:
-			allowed = user_key == group.creator
-
-		if not allowed:
-			return self.redirect('/feed')
-
-		data = {
-			'name': group.name,
-			'image': group.cover_image_thumbnail,
-			'description': group.description,
-			'form_action' : blobstore.create_upload_url('/edit-group/' + group_id)
-		}
-		return self.render('edit_group.html', g = data)
+	# /edit-group/(group_id)
 
 	def post(self, group_id):
 		if not self.account:
 			return self.redirect('/')
 
+		page_url = '/group/' + group_id
 		description = self.request.get('description')
 		try:
 			blob = self.get_uploads()[0]
@@ -215,7 +200,7 @@ class GroupEditHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 
 		if not description and not blob:
 			#blank submission
-			return self.redirect('/edit-group/' + group_id)
+			return self.redirect('/feed')
 
 		try:
 			Group.edit_group(self.user_key, group_id, description, blob)
@@ -223,43 +208,34 @@ class GroupEditHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 		except BadImageError as e:
 			#delete the incorrect blob uploaded
 			blobstore.delete([blob.key()])
+			# since we are not using ajax, just redirect away from group page
+			return self.redirect('/feed')
 
-			#re-create upload url, group_data and render back the form
-			group = Group.get_by_id(group_id)
-			data = {
-				'name': group.name,
-				'image': group.cover_image_thumbnail,
-				'description': group.description,
-				'form_action' : blobstore.create_upload_url('/edit-group/' + group_id)
-			}
-			return self.render('edit_group.html', error = e.value,
-													g = data)
-
-		return self.redirect('/group/' + group_id)
-
+		# same redirect causes page reload
+		return self.redirect(page_url)
 
 class GroupJoiningHandler(Handler):
-	# /join-group/([a-z0-9-]{3,20})
+	# /ajax/join-group/(group_id)
 
 	def get(self, group_id):
 		if not self.account:
-			return self.redirect('/')
+			return self.fail_ajax()
 
 		user_key = self.user_key
 		group_key = ndb.Key(Group, group_id)
 		group_joined = Group.join_group(user_key, group_key)
 
 		if group_joined:
-			return self.redirect('/feed')
+			return self.render_json(True)
 		else:
-			return self.redirect('/group/%s' % group_id)
+			return self.fail_ajax()
 
 class GroupLeavingHandler(Handler):
-	# /leave-group/([a-z0-9-]{3,20})
+	# /ajax/leave-group/(group_id)
 
 	def get(self, group_id):
 		if not self.account:
-			return self.redirect('/')
+			return self.fail_ajax()
 
 		user_key = self.user_key
 		group_key = ndb.Key(Group, group_id)
@@ -267,15 +243,16 @@ class GroupLeavingHandler(Handler):
 		group_left = Group.leave_group(user_key, group_key)
 
 		if group_left:
-			return self.redirect('/feed')
+			return self.render_json(True)
 		else:
-			return self.redirect('/group/%s' % group_id)
+			return self.fail_ajax()
 
 class GroupRequestAdminHandler(Handler):
-	# /admin-group/([a-z0-9-]{3,20})
-	def post(self, group_id):
+	# /ajax/admin-group/(group_id)
+
+	def get(self, group_id):
 		if not self.account:
-				return self.redirect('/')
+			return self.fail_ajax()
 
 		user_key = self.user_key
 		group_key = ndb.Key(Group, group_id)
@@ -287,22 +264,24 @@ class GroupRequestAdminHandler(Handler):
 		# don't raise admin request until user in not a member of group
 		# or the user is already an admin of the group
 		if group_key not in user.groups or user_key in group.admins:
-			return self.redirect('/group/%s' % group_id)
+			return self.fail_ajax()
 
 		test = PrivateRequest.test_existing_request(user_key, group_key, 'admin')
 		if test:
-			return self.redirect('/group/%s' % group_id)
+			return self.fail_ajax()
 
 		req = PrivateRequest.raise_request(group, user, 'admin')
-		return self.redirect('/feed')
+		return self.render_json(True)
 
 class GroupPostHandler(Handler):
+	# /ajax/post-group
+
 	def get(self):
 		return self.redirect('/')
 
 	def post(self):
 		if not self.account:
-			return self.redirect('/')
+			return self.fail_ajax()
 
 		user_post = self.request.get('user_post')
 		group_id = self.request.get('target_group')
@@ -311,12 +290,12 @@ class GroupPostHandler(Handler):
 		group = Group.get_by_id(group_id)
 
 		if not group or (self.user_key not in group.members):
-			return self.fail_ajax(400, "not a group member")
-
+			return self.fail_ajax()
 		try:
-			post_key = GroupPost.create_group_post(group_id, self.user_id, user_post)
+			post_key, post_data = GroupPost.create_group_post(group_id, group.name,
+															  self.user_id, user_post)
 		except BadUserInputError as e:
-			return self.fail_ajax(400, e.value)
+			return self.fail_ajax()
 
 		#create notification content
 		data = {'post_key': post_key,
@@ -331,6 +310,44 @@ class GroupPostHandler(Handler):
 		notification_target_members.remove(self.user_key)
 
 		create_notifications(notification_target_members, notification)
+		return self.render_json(post_data)
+
+class DeletePostHandler(Handler):
+	# /ajax/delete-post
+
+	def post(self):
+		if not self.account:
+			return self.fail_ajax()
+
+		urlsafe = self.request.get('post_id')
+		group_post = ndb.Key(urlsafe = urlsafe).get()
+		# can delete only your own posts
+		if not group_post or group_post.user_id != self.user_id:
+			return self.fail_ajax()
+
+		group_post.key.delete()
+		return self.render_json(True)
+
+class EditPostHandler(Handler):
+	# /ajax/edit-post
+
+	def post(self):
+		if not self.account:
+			return self.fail_ajax()
+
+		urlsafe = self.request.get('post_id')
+		post_content = self.request.get('post_content')
+
+		if not post_content or post_content.isspace():
+			return self.fail_ajax()
+
+		group_post = ndb.Key(urlsafe = urlsafe).get()
+		# can delete only your own posts
+		if not group_post or group_post.user_id != self.user_id:
+			return self.fail_ajax()
+
+		group_post.post = post_content
+		group_post.put()
 		return self.render_json(True)
 
 
@@ -339,19 +356,47 @@ class GetGroupFeedHandler(Handler):
 
 	def get(self):
 		if not self.account:
-			return None
+			return self.fail_ajax()
 
-		group_id = get_group_id(sanitize_group_name(self.request.get('gid')))
+		group_id = self.request.get('group_id')
+		cursor_str = self.request.get('cursor_str')
+
+		#use python's None instead of blank string
+		if not cursor_str:
+			cursor_str = None
+
 		group = Group.get_by_id(group_id)
 		user_key = self.user_key
 
 		if group and user_key in group.members:
-			feed = get_group_feed(group_id)
-			if not feed:
+			feed_result = get_feed(group_id = group_id,
+								   cursor_str = cursor_str)
+			return self.render_json(feed_result)
+		else:
+			return self.fail_ajax()
+
+class UpdateGroupFeedHandler(Handler):
+	# /ajax/update-group-feed
+
+	def get(self):
+		if not self.account:
+			return self.fail_ajax()
+
+		group_id = self.request.get('group_id')
+		current_timestamp = int(self.request.get('latest_timestamp'))
+		
+		# check if user in a member
+		group = Group.get_by_id(group_id)
+		user_key = self.user_key
+		if group and user_key in group.members:
+			updates = update_group_feed(group_id, current_timestamp)
+			if not updates:
 				#return null for no posts but group exists
 				return self.render_json(None)
-			return self.render_json(feed)
+
+			return self.render_json(updates)
 		else:
+			# user not eligible for posts, invalid request
 			return self.fail_ajax()
 
 class GroupTextSearchHandler(Handler):
@@ -359,7 +404,7 @@ class GroupTextSearchHandler(Handler):
 	
 	def get(self):
 		if not self.account:
-			return None
+			return self.fail_ajax()
 
 		query_string = self.request.get("q")
 		if not check_query_string(query_string):
@@ -370,6 +415,8 @@ class GroupTextSearchHandler(Handler):
 			return self.render_json(None)
 
 		return self.render_json(search_results)
+
+
 		
 
 

@@ -71,5 +71,55 @@ define({
 		if (n["type"] === "admin"){
 			return n.poster_name + " has accepted your request for adminship of "+ n.group_name;
 		}
+	},
+
+	getRequestText : function(req){
+		var requestText = "";
+
+		if (req.request_type === "join") {
+			requestText = req.user_name + " is wants to join " + req.group_name;
+		}
+		if (req.request_type === "admin") {
+			requestText = req.user_name + " is requsting adminship of " + req.group_name;
+		}
+
+		return requestText;
+	},
+
+	checkImageFile: function(file){
+		// file is FileList object
+
+		var allowedImageType = {
+			"image/jpeg":true,
+			"image/png": true,
+			"image/jpg": true
+		};
+		var result = {
+			ok: true,
+			errorStr: null
+		};
+
+		if (!allowedImageType.hasOwnProperty(file[0].type)){
+			result.ok = false;
+			result.errorStr = "Not a valid image";
+		}
+
+		if (file[0].size > 10000000) {
+			result.ok = false;
+			result.errorStr = "Image file is bigger than 10MB";
+		}
+
+		return result;
+	},
+
+	getCharLeft: function (desc) {
+		var inputLength = desc.length;
+		var charLeft = 600 - inputLength;
+
+		if (charLeft >= 0) {
+			return charLeft;
+		} else {
+			return  charLeft +  "(limit exceeded)";
+		}
 	}
 });
