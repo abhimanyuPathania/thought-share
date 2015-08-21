@@ -1,0 +1,169 @@
+
+{% extends 'base_navbar.html' %}
+
+{% block title %}
+	<title>{{g.name}}</title>
+{% endblock %}
+
+{% block style_sheets %}
+	<link rel="stylesheet" href="../stylesheets/simple_modal_min.css">
+{% endblock %}
+
+{% block json_elements %}
+	<span style ="display:none" id="groupData" data-groupJSON="{{group_json}}"></span>
+{% endblock %}
+
+{% block scripts %}	
+	<script data-main="../scripts/groupLandingMain" src="../scripts/libs/require.js"></script>
+{% endblock %}
+
+{% block modals %}
+
+{% endblock %}
+
+{% block content %}
+	<div>
+		<div>
+			<h1>{{g.name}}</h1>
+			<img class="group-cover-image" src="{{g.cover_image_url}}" alt="{{g.name}} cover image">
+			<p>{{g.description}}</p>
+			{% if g.members_number %}
+				<p><i>{{g.members_number}} members</i></p>
+			{% endif %}
+			{% if g.render_edit %}
+				<!-- START EDIT GROUP MODAL -->
+				<div class="simple-modal-wrapper" data-modal-id="editGroupModal">
+    				<div class="modal-content">
+		        		<p class="modal-heading">Change group description/Image</p>
+				        <div class="modal-body">
+				        	<form id="editForm" action="{{g.form_action}}" enctype="multipart/form-data" method="POST">
+								<div>
+									<h3>Change group's description</h3>
+									<p>
+										<textarea name="description" cols="30" rows="10"></textarea>
+										<span id="descCount">{{g.description_limit}}</span>
+									</p>
+									<p>Current:{{g.description}}</p>
+								</div>
+								
+								<div>
+									<h3>Change group's image</h3>
+									<p>
+										{% if g.default_image %}
+											Current image: <img src="{{g.cover_image_thumbnail}}"> <span id="defaultImageMessage">None set. Using default</span>
+										{% else %}
+											Current image: <img class="group-cover-image" src="{{g.cover_image_thumbnail}}">
+											<button type="button" id="deleteImage">Remove cover pic</button>
+											<span id="defaultImageMessage"></span>
+										{% endif %}
+									</p>
+									<p><input type="file" name="file" value="Select"></p>
+								</div>
+
+								<div>
+									<input type="submit" name="submit" value="Save changes">
+									<button type="button" class="simple-modal-close">Close Modal</button>
+								</div>
+								<div id="error"></div>
+							</form>
+				        </div><!-- END MODAL BODY -->
+
+   			 		</div><!-- END MODAL CONTENT -->
+				</div><!-- END MODAL WRAPPER -->
+				<button class="simple-modal-trigger" data-trigger-modal-id = "editGroupModal">Edit group details</button> 
+			{% endif %}
+		</div>
+
+		<div>
+			<h4>Created by:</h4>
+			<p>{{g.creator_name}}</p>
+			<img src="{{g.creator_image}}" alt="{{g.creator_name}} photo">
+		</div>
+	</div>
+
+	<div>
+		{% if g.recent_posts %}
+			<h2>Recent posts in this group</h2>
+			{% for post in g.recent_posts %}
+				<div>
+					{% if g.poster_info %}
+						<div>
+							<strong>{{post.poster_name}}</strong>
+							<img src="{{post.poster_image}}" alt="{{post.poster_name}}'s profile picture">
+							<span class="timestamp" data-timestamp = "{{post.created}}"></span>
+						</div>
+					{% endif %}
+					<p>{{post.post}}</p>
+				</div>
+				<hr/>
+			{% endfor %}
+		<!-- either 0 post in group or its a private group and user not member(default case) -->
+		{% else %}
+			<!-- public group or a private group with user as member-->
+			{% if not g.private or (g.private and g.member) %}
+				<h4>No posts in this group yet</h4>
+			{% endif %}	
+		{% endif %}
+	</div>
+
+	<div>
+		<!-- A public group -->
+		{% if not g.private %}
+			
+			<!-- user is member of the public group -->
+			{% if g.member %}
+				<!-- <form action="/leave-group/{{g.id}}" method="GET">
+					<input type="submit" value="Leave this group">
+				</form> -->
+
+				<button class="action" data-click-action="leave">Leave this group</button>
+			<!-- not a member so render join button -->
+			{% else %}
+				<!-- <form action="/join-group/{{g.id}}" method="GET">
+					<input type="submit" value="Join this group">
+				</form> -->
+
+				<button class="action" data-click-action="join">Join this group</button>
+			{% endif %}
+		{% endif %}
+		
+		<!-- A private group -->
+		{% if g.private %}
+			
+			{% if g.member %}
+				<!-- <form action="/leave-group/{{g.id}}" method="GET">
+					<input type="submit" value="Leave this group">
+				</form> -->
+
+				<button class="action" data-click-action="leave">Leave this group</button>
+				{% if not g.admin %}
+					{% if g.admin_request %}
+						<strong>Your request for adminship of this group is pending</strong>
+					{% else %}
+						<button class="action" data-click-action="request">Request Adminship of this group</button>
+
+						<!-- <form action="/admin-group/{{g.id}}" method="POST">
+							<input type="submit" value="Request Adminship of this group">
+						</form> -->
+					{% endif %}
+				{% endif %}
+
+			<!-- not a member of private group/ so either we render join or
+			user has a pending join request-->
+			{% else %}
+				{% if g.render_join %}
+				<button class="action" data-click-action="join">Join this group</button>
+
+				<!-- <form action="/join-group/{{g.id}}" method="GET">
+					<input type="submit" value="Join this group">
+				</form> -->
+				{% else %}
+					<strong>Your request to join this group is pending</strong>
+				{% endif %}
+				<!-- <button>Join this group</button> -->
+			{% endif %}
+		{% endif %}
+	</div>
+	
+{% endblock %}
+

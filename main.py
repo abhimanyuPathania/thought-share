@@ -13,6 +13,8 @@ from feed_handler import *
 from group_handler import *
 from notification_handler import *
 from profile_handler import *
+from navbar_handler import *
+from widget_handler import *
 
 from models import *
 
@@ -86,6 +88,7 @@ class DatastoreHandler(Handler):
 
 app = webapp2.WSGIApplication([
     ('/', LandingPageHandler),
+    ('/ajax/get-navbar-data', NavbarHandler),
     ('/feed', FeedHandler),
     ('/view-profile', ViewProfileHandler),
     ('/edit-profile', EditProfileHandler),
@@ -109,6 +112,7 @@ app = webapp2.WSGIApplication([
     ('/ajax/update-request-notifications', UpdateRequestHandler), 
     ('/ajax/complete-request', CompleteRequestHandler),
     ('/ajax/delete-image', DeleteImageHandler),
+    ('/ajax/widget/hot-groups', HotGroupsHandler),
     ('/datastore', DatastoreHandler)
 ], debug=True)   
 

@@ -1,0 +1,24 @@
+
+<!-- Each component's markup has
+	> div.dropdown-display: Markup displayed on the main navbar
+	> div.dropdown-wrapper: hidden container for dropdown's content
+ -->
+
+<div class="dropdown-display">
+	<div class="input-addon">
+		<span class="input-addon-item">(Search)</span>
+		<input type="text" class="input-addon-field" data-bind="event:{ keyup : queryGroups }" placeholder="Discover new groups">
+		<span class="input-addon-item">(+)</span>
+	</div>
+</div>
+
+<div class="dropdown-wrapper" data-bind="foreach: groupQueryResults">
+	<div class="dropdown-item">
+		<img data-bind="attr: {src: image}">
+		<div>
+			<p><a data-bind="text: name, attr:{href: url}"></a></p>
+			<p data-bind="text: description"></p>
+		</div>
+		
+	</div>
+</div>

@@ -1,17 +1,36 @@
 
+<!-- Each component's markup has
+	> div.dropdown-display: Markup displayed on the main navbar
+	> div.dropdown-wrapper: hidden container for dropdown's content
+ -->
 
-<h4>Request Notifications</h4>
-<p>you have <b data-bind="text: unreadRequestNotifications"></b> requests</p>
+<div class="dropdown-display">
+	<button data-bind = "click: showRequests">Show Requests</button>
+	<span data-bind="text: unreadRequestNotifications, visible: unreadRequestNotifications() > 0"></span>
+</div>
 
-<button data-bind = "click: showRequests">Show Requests</button>
+<div class="dropdown-wrapper">
+	<b class="callout-notch callout-notch-border"></b>
+	<b class="callout-notch"></b>
+	<div class="dropdown-items-heading">
+		<h4>Requests</h4>
+	</div>
+	
+	<div class="dropdown-items-list">
+		<!-- ko foreach: requestNotifications -->
+        <div class="dropdown-item">
 
-<div id="requests" style="display:none">
-	<ul data-bind="foreach: requestNotifications">
-		<li>
-			<p><img data-bind="attr:{src: user_image}"><strong data-bind="text:user_name"></strong></p>
-			<p data-bind="text: text"></p>
-			<p><i data-bind="text: timestampText"></i></p>
-			<p><button data-bind = "click: $component.completeRequest, visible:complete === false">accept</button></p>
-		</li>		
-	</ul>
+			<img class="dropdown-item-image" data-bind="attr:{src: user_image, alt:user_name + '\'s profile picture'}">
+			<div class="dropdown-item-message">
+				<p data-bind="text: text"></p>
+				<p><button data-bind = "click: $component.completeRequest, visible:complete === false">Accept</button></p>
+			</div>
+		</div>
+    <!-- /ko -->
+	</div>
+	
+	<div class="dropdown-items-footer">
+		<a href="/view-profile#requests">View all</a>
+	</div>
+
 </div>

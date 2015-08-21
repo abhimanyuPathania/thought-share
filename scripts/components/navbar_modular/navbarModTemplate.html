@@ -1,0 +1,45 @@
+<div class="navbar-wrapper">
+
+	<div class="navbar-content center-container">
+		
+		<div class="navbar-item">
+			<a href="/feed">Thought Share</a>
+		</div>
+
+		<div class="navbar-item dropdown" id="search">
+			<group-search></group-search>
+		</div>
+
+		<div class="navbar-item dropdown" id="notifications">
+			<post-notification params="parentRef: parentRef"></post-notification>
+		</div>
+
+		<div class="navbar-item dropdown" id="requests">
+			<request-notification></request-notification>
+		</div> <!-- END NAVBAR ITEM-->
+
+		<div class="navbar-item dropdown" id="profile" data-bind="with: navbarData()">
+			<div class="dropdown-display" data-bind="click: $component.toggleProfileDropdown">
+				<!-- the image/icon/text that triggers dropdown-->
+				<p>
+					<img data-bind="attr: {src: imageThumb, alt: 'your profile picture'}">
+					<span data-bind="text: firstName"></span>
+				</p>
+			</div>
+			<div class="dropdown-wrapper">
+				<!-- main content wrapper div whose display is toggled-->
+				<b class="callout-notch callout-notch-border"></b>
+				<b class="callout-notch"></b>
+				<div class="dropdown-item">
+					<!-- content of dropdown menus-->
+					<a href="/view-profile">View Profile</a>
+				</div>
+				<div class="dropdown-item">
+					<a data-bind="attr: {href: logoutURL}">Logout</a>
+				</div>
+			</div>
+		</div> <!-- END NAVBAR ITEM-->
+						
+	</div> <!-- END NAVBAR CONTENT -->
+
+</div><!-- END NAVBAR  -->

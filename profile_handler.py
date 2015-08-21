@@ -4,12 +4,11 @@ from google.appengine.ext import blobstore
 from google.appengine.ext.webapp import blobstore_handlers
 
 from utility_handler import Handler
-
 from models import User, Group
+
 from view_profile_functions import *
 from helper_operations import get_group_data, delete_image
 from helper_functions import BadUserInputError, BadImageError
-from constants import DEFAULT_USER_AVATAR
 
 class ViewProfileHandler(Handler):
 	# /view-profile
@@ -20,14 +19,9 @@ class ViewProfileHandler(Handler):
 			return self.redirect('/')
 
 		user = self.user_key.get()
-		user_data = user.to_dict(include=['display_name', 'email', 'thumbnail_url'])
+		user_data = user.to_dict(include=['display_name', 'email', 'image_url'])
 		user_data['form_action'] = blobstore.create_upload_url('/edit-profile')
-
-		default_image = False
-		if not user_data['thumbnail_url']:
-			user_data['thumbnail_url'] = DEFAULT_USER_AVATAR
-			default_image = True
-		user_data['default_image'] = default_image
+		user_data['default_image'] = False if user_data['image_url'] else True
 
 		return self.render('view_profile.html', u = user_data)
 
@@ -59,12 +53,12 @@ class ProfileDataHandler(Handler):
 		if view == 'notifications':
 			# 'timestamp = 0' for initial fetch
 			# None - for no notifications yet present
-			# [] - empty list for exhasting all notifications in record
+			# [] - empty list for exhausting all notifications in memcache
 			timestamp = int(self.request.get('timestamp'))
 			data = get_user_notifications(self.user_id, timestamp)
 
 		# view == 'requests' is handled by RequestNotificationHandler
-		# at the url '/ajax/get-request-notifications', as is the request component
+		# at the url '/ajax/get-request-notifications', as in the request ko component
 
 		return self.render_json(data)
 
@@ -87,7 +81,6 @@ class EditProfileHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 
 		try:
 			User.edit_user(self.user_id, display_name, blob)
-		
 		except BadUserInputError as e:
 			#delete the incorrect blob uploaded if there
 			if blob:			

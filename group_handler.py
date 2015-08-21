@@ -13,7 +13,10 @@ from helper_functions import *
 from helper_operations import *
 from helper_db_operations import *
 
-from constants import DEFAULT_USER_AVATAR, DFAULT_GROUP_IMAGE
+from constants import GROUP_LP_RECENT_POSTS_THUMB
+from constants import GROUP_LP_CREATOR_THUMB
+from constants import GROUP_LP_GROUP_THUMB
+from constants import GROUP_DESCRIPTION_CHAR_LIMIT
 
 class CreateGroupHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 	def get(self):
@@ -21,7 +24,8 @@ class CreateGroupHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 			return self.redirect('/')
 
 		image_upload_url = blobstore.create_upload_url('/create-group')
-		self.render('create_group.html', form_action = image_upload_url)
+		self.render('create_group.html', form_action = image_upload_url,
+										 description_limit = GROUP_DESCRIPTION_CHAR_LIMIT)
 
 	def post(self):
 		if not self.user:
@@ -60,7 +64,7 @@ class CreateGroupHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 		return self.redirect('/feed')
 
 class GroupLandingPageHandler(Handler):
-	# /group/([a-z0-9-]{3,20})
+	# /group/(group_id)
 
 	def get(self, group_id_sent):
 		if not self.account:
@@ -101,12 +105,18 @@ class GroupLandingPageHandler(Handler):
 											  "admins"])
 		group_data["id"] = group_id
 
-		#add default group image if not present
-		group_data["default_image"] = False
-		if not group_data["cover_image_url"]:
-			group_data["cover_image_url"] = DFAULT_GROUP_IMAGE
-			group_data["cover_image_thumbnail"] = DFAULT_GROUP_IMAGE
-			group_data["default_image"] = True
+		#add default group image flag
+		image_url = group_data["cover_image_url"]
+		group_data["default_image"] = False if image_url else True
+		
+		# add the actual image urls
+		group_data["cover_image_url"] = get_thumbnail_url(image_url, 0, 'group')
+		#add thumbnail
+		group_data["cover_image_thumbnail"] = get_thumbnail_url(image_url,
+																GROUP_LP_GROUP_THUMB,
+																'group')
+		#add group description limit
+		group_data["description_limit"] = GROUP_DESCRIPTION_CHAR_LIMIT
 
 		#add the member,admin flags
 		group_data["member"] = member
@@ -149,7 +159,8 @@ class GroupLandingPageHandler(Handler):
 		#add creator information
 		creator = group.creator.get()
 		group_data["creator_name"] = creator.display_name
-		group_data["creator_image"] = creator.thumbnail_url or DEFAULT_USER_AVATAR
+		group_data["creator_image"] = get_thumbnail_url(creator.image_url,
+														GROUP_LP_CREATOR_THUMB, 'user')
 
 		#add recent posts in group
 		#default value for private group and not member
@@ -159,8 +170,9 @@ class GroupLandingPageHandler(Handler):
 		group_data["poster_info"] = False
 		if member:
 			recent_posts_data = get_feed(group_id = group_id,
-											   cursor_str=None,
-											   add_poster = True)
+									     cursor_str=None,
+									     add_poster = True,
+									     thumbnail_size = GROUP_LP_RECENT_POSTS_THUMB)
 
 			recent_posts = recent_posts_data["post_list"]
 			group_data["poster_info"] = True
@@ -170,13 +182,13 @@ class GroupLandingPageHandler(Handler):
 				# public group/not member
 				# don't add poster imformations
 				recent_posts_data = get_feed(group_id = group_id,
-												   cursor_str = None,
-												   add_poster = False)
+											 cursor_str = None,
+											 add_poster = False)
 				recent_posts = recent_posts_data["post_list"]
 		
 		group_data["recent_posts"] = recent_posts
 
-		#set seperate group_json to be used by Javascript
+		#set seperate group_json to be used by JavaScript
 		group_json = {"name": group_data["name"],
 					  "id": group_data["id"],
 					  "private": group_data["private"]}
@@ -385,7 +397,7 @@ class UpdateGroupFeedHandler(Handler):
 		group_id = self.request.get('group_id')
 		current_timestamp = int(self.request.get('latest_timestamp'))
 		
-		# check if user in a member
+		# check if user is a member
 		group = Group.get_by_id(group_id)
 		user_key = self.user_key
 		if group and user_key in group.members:

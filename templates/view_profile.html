@@ -1,4 +1,5 @@
-{% extends 'base.html' %}
+
+{% extends 'base_navbar.html' %}
 
 {% block title %}
 	<title>{{u.display_name}}</title>
@@ -8,14 +9,14 @@
 	<link rel="stylesheet" href="../stylesheets/simple_modal_min.css">
 {% endblock %}
 
-{% block content %}	
-<script type="text/javascript" data-main="../scripts/viewProfileMain" src="../scripts/require.js">
-</script>
+{% block json_elements %}
+{% endblock %}
 
+{% block scripts %}
 <script type="text/html" id="group-template">
 	<li>
 		<p>
-			<img data-bind="attr:{src: cover_image_thumbnail}">
+			<img data-bind="attr:{src: cover_image_url, alt: name + ' group\'s cover image' }">
 			<a data-bind="attr:{href: url}"><strong data-bind="text: name"></strong></a>
 			<i data-bind="text: members_str"></i>
 		</p>
@@ -24,62 +25,64 @@
 	</li>	
 </script>
 
-<div>
-	<post-notification params="parent: null"></post-notification>
-	<request-notification></request-notification>
-</div>
+<script type="text/javascript" data-main="../scripts/viewProfileMain" src="../scripts/libs/require.js">
+</script>
 
-<div>
-	<p><img class="user-image" src="{{u.thumbnail_url}}" alt="{{u.display_name}}'s image"></p>
-	<h2>{{u.display_name}}</h2>
-	<p>Associated google account: {{u.email}}</p>
-</div>
+{% endblock %}
 
+{% block modals %}
 <div class="simple-modal-wrapper" data-modal-id="editUserModal">
 	<div class="modal-content">
 
 		<p class="modal-heading">Edit your profile</p>
 
-	    <div class="modal-body">
-		    <form id="editForm" action="{{u.form_action}}" enctype="multipart/form-data" method="POST">
-		    	<div>
-		    		<h4>Change display name</h4>
-					<label for="">Display Name</label>
-					<input type="text" name = "display_name">
-					<span>currently: {{u.display_name}}</span>
-				</div>
-				<div>
-		    		<h4>Profile photo</h4>
-						{% if u.default_image %}
-							<p>
-								<img class="user-image" src="{{u.thumbnail_url}}" alt="{{u.display_name}}'s image">
-								<span id="defaultImageMessage">None set. Using default</span>
-								<p><input type="file" name="file" value="Select"></p>			
-							</p>
-						{% else %}
-							<p>
-								<img class="user-image" src="{{u.thumbnail_url}}" alt="{{u.display_name}}'s image">
-								<button type="button" id="deleteImage">Delete Image</button>
-								<span id="defaultImageMessage"></span>
-								<p><input type="file" name="file" value="Select"></p>
-							</p>
-						{% endif %}											
-				</div>
-				<div>
-					<input type="submit" name="submit" value="Save changes">
-					<button type="button" class="simple-modal-close">Close Modal</button>
-				</div>				
-				<div id="error"></div>
-			</form>
-	    </div><!-- END MODAL BODY -->
+		<!-- ko if: navbarData() -->
+		    <div class="modal-body">
+			    <form id="editForm" action="{{u.form_action}}" enctype="multipart/form-data" method="POST">
+			    	<div>
+			    		<h4>Change display name</h4>
+						<label for="">Display Name</label>
+						<input type="text" name = "display_name">
+						<span data-bind="text: navbarData().displayName"></span>
+					</div>
+					<div>
+			    		<h4>Profile photo</h4>
+						<p>
+							<img data-bind="attr: {src: userImages.modal}">
+							{% if not u.default_image %}
+								<button type="button" data-bind="click: deleteUserImage">Delete Image</button>
+							{% endif %}
+							<p><input type="file" name="file" value="Select"></p>
+						</p>										
+					</div>
+					<div>
+						<input type="submit" name="submit" value="Save changes">
+						<button type="button" class="simple-modal-close">Close Modal</button>
+					</div>				
+					<div id="error"></div>
+				</form>
+		    </div><!-- END MODAL BODY -->
+		<!-- /ko -->
 
 	</div><!-- END MODAL CONTENT -->
 
 </div><!-- END MODAL WRAPPER -->
-<button type="button" class="simple-modal-trigger" data-trigger-modal-id = "editUserModal">Edit Profile</button> 
+{% endblock %}
+
+{% block content %}	
+<div data-bind="with: navbarData()">
+	<p><img class="user-image" data-bind="attr: {src: $root.userImages.main, alt:'your profile picture'}"></p>
+	<h2 data-bind="text: displayName"></h2>
+	<p data-bind="text: email"></p>
+</div>
+
+<div>
+	<button type="button" class="simple-modal-trigger" data-trigger-modal-id = "editUserModal" data-bind="click: clearModalForm">Edit Profile</button> 	
+</div>
+
 
 <ul data-bind="foreach: tabNames">
-	<li data-bind="text: $data, click:changeTab"></li>
+	<li data-bind="text: $data, click:$root.changeTab"></li>
 </ul>
 
 <div>
@@ -98,9 +101,9 @@
         	<li>
         		<p data-bind="text:post"></p>
         		<p>posted in <strong data-bind="text: group_name"></strong>
-        			<i data-bind="text: timestampText"></i>
+        			<span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': created }"></span>
         		</p>
-        		<p><button type="button" data-bind="click: deletePost">Delete</button></p>
+        		<p><button type="button" data-bind="click: $root.deletePost">Delete</button></p>
         	</li>
         </ul>
         <button data-bind="click: getMorePosts, enable: posts.more()">Get more posts</button>
@@ -111,9 +114,9 @@
         <ul data-bind= "foreach: notifications.ntfArray">
 			<li>
 				<p>
-					<img data-bind="attr:{src: posterImage}"><span data-bind = "text: notificationText"></span>
+					<img data-bind="attr:{src: posterImage, alt: posterName + '\'s profile picture'}"><span data-bind = "text: notificationText"></span>
 				</p>
-				<p><i data-bind = "text: timestampText"></i></p>
+				<p><span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': timestamp, 'data-notification': true }"></span></p>
 			</li>
 		</ul>
 		<button data-bind="click: getMoreNotifications, enable: notifications.more()">Get more notifications</button>
@@ -123,10 +126,10 @@
         <h3>Requests</h3>
         <ul data-bind="foreach: requests.requestArray">
 			<li>
-				<p><img data-bind="attr:{src: user_image}"><strong data-bind="text:user_name"></strong></p>
+				<p><img data-bind="attr:{src: user_image, alt: user_name + '\'s profile picture'}"><strong data-bind="text:user_name"></strong></p>
 				<p data-bind="text: text"></p>
-				<p><i data-bind="text: timestampText"></i></p>
-				<p><button data-bind = "click: completeRequest, visible:complete === false">Accept Request</button></p>
+				<p><span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': timestamp, 'data-notification': true }"></span></p>
+				<p><button data-bind = "click: $root.completeRequest, visible:complete === false">Accept Request</button></p>
 			</li>		
 		</ul>
 		<button data-bind="click: getMoreRequests, enable: requests.more()">Get more requests</button>

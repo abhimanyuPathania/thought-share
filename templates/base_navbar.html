@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<html lang="EN">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, intial-scale=1">
+		{% block title %}{% endblock %}
+
+		<link rel="stylesheet" href="../stylesheets/base-navbar.css">
+		{% block style_sheets %}{% endblock %}
+	</head>
+	<body>
+		{% block json_elements %}
+		{% endblock %}
+
+		{% block scripts %}	
+		{% endblock %}
+		
+		{% block modals %}
+		{% endblock %}
+
+		<navbar-modular params="parentRef: parentRef"></navbar-modular>
+		
+		<div class="page-content center-container">
+			{% block content %}
+			{% endblock %}
+		</div>		
+		
+	</body>
+</html>

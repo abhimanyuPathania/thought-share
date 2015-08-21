@@ -1,16 +1,18 @@
 
 define(['knockout',
-		'jquery', 
+		'jquery',
 		'helper',
-		'text!components/request/requestTemplate.html'], 
+		'constants',
+		'libs/text!components/request/requestTemplate.html'], 
 
-function(ko, $, helper, htmlString) {
+function(ko, $, helper, constants, htmlString) {
 
 function RequestViewModel() {
 	
 var self = this;
+
 var REQUEST_NTF_KEY = "ts-req-ntf-timestamp"; 
-var requestDiv = $("#requests");
+var requestWrapper = $("#requests .dropdown-wrapper");
 
 self.pollingTimestamp = null;
 self.fetchTimestamp = null;
@@ -23,7 +25,7 @@ self.stopPolling = false;
 initialFetch();
 
 self.showRequests = function() {
-	requestDiv.toggle(500);
+	helper.toggleDropdown(requestWrapper);
 	fetchRequestUpdates();
 }
 
@@ -102,8 +104,8 @@ function doRequestNotificationsPolling() {
 			console.log("doRequestNotificationsPolling", "ERROR");
 		},
 
-		//change the settimeout time!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		complete: setTimeout(doRequestNotificationsPolling, 45000)
+		
+		complete: setTimeout(doRequestNotificationsPolling, constants.REQUEST_POLLING)
 	});
 };
 
@@ -152,11 +154,14 @@ function fetchRequestUpdates() {
 			for(var i=data.length-1; i>=0; i--) {
 				data[i]["text"] = helper.getRequestText(data[i]);
 				data[i]["timestampText"] = helper.getTimestampText(data[i].timestamp, true);
+				data[i]["user_image"] = helper.getImageURL(data[i]["user_image"],
+														   constants.REQUEST_IMAGE,
+														   "user");
 				currentRequests.unshift(data[i]);
 			}
 
-			//!!!!!!!!!!!!----------change the slcie to match MAX_NOTIFICATIONS_FETCHED
-			currentRequests = currentRequests.slice(0, 2)
+			//Don't restrict to max 15 in dropdown menu
+			//currentRequests = currentRequests.slice(0, constants.MAX_NOTIFICATIONS_SHOWN)
 
 			self.fetchTimestamp = currentRequests[0].timestamp;
 			localStorage.setItem(REQUEST_NTF_KEY, currentRequests[0].timestamp);
@@ -216,6 +221,9 @@ function initialFetch() {
 			for (var i=0, l=requests.length; i<l; i++) {
 				requests[i]["text"] = helper.getRequestText(requests[i]);
 				requests[i]["timestampText"] = helper.getTimestampText(requests[i].timestamp, true);
+				requests[i]["user_image"] = helper.getImageURL(requests[i]["user_image"],
+														   	   constants.REQUEST_IMAGE,
+														       "user");
 				currentRequests.push(requests[i]);
 			}
 
@@ -249,12 +257,13 @@ function initialFetch() {
 		// kick off request polling after intial fetch
 		complete: doRequestNotificationsPolling
 	});
-}
+}// end intial fetch
 
 
 } //end view model
 
 // Return component definition, this is used in main.js
-return { viewModel: RequestViewModel, template: htmlString };
+return {viewModel: RequestViewModel,
+		template: htmlString };
 
 }); // end define

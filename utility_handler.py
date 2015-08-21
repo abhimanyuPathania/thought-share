@@ -10,6 +10,8 @@ from google.appengine.api import users
 from google.appengine.ext import ndb
 
 from models import User
+
+from helper_functions import get_thumbnail_url
 from helper_operations import check_user_warm_cache
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
@@ -41,6 +43,12 @@ class Handler(webapp2.RequestHandler):
 			params["status_url"] = users.create_logout_url('/')
 		else:
 			params["status_url"] = users.create_login_url('/feed')
+
+		# if self.account:
+		# 	params["navbar_user_image"] = get_thumbnail_url(self.account.image_url,
+		# 													NAVBAR_USER_THUMB,
+		# 													'user')
+		# 	params["navbar_display_name"] = self.account.display_name
 		return t.render(params)
 
 	def render(self, template, **kw):

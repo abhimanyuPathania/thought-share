@@ -2,11 +2,10 @@
 import re
 
 ## helper_functions
-#!!!!!!!!!!!!!!!!!!!!fix uper limit fot the reg ex, update in feed.js too if changes
 GROUP_NAME_RE = re.compile(r"^[a-zA-Z0-9\s]{3,50}$")
 DISPLAY_NAME_RE = re.compile(r"^[a-zA-Z0-9\s]{2,50}$")
 SECONDS_IN_DAY = 24*60*60
-MAX_IMAGE_SIZE_BYTES = 10000000
+MAX_IMAGE_SIZE_BYTES = 10000000 #10MB
 
 ## helper_operations
 NOTF_NAMESPACE = 'notifications'
@@ -15,13 +14,10 @@ NOTF_NAMESPACE = 'notifications'
 USERS_NAMESPACE = 'users'
 
 ## helper_operations, models
-DEFAULT_USER_AVATAR = '../images/defaults/user.png'
+DEFAULT_USER_IMAGE = '../images/defaults/user.png'
 
 ## helper_operations, models
 DFAULT_GROUP_IMAGE = '../images/defaults/group.png'
-
-## models
-THUMBNAIL_SIZE = 100
 
 ## models
 GROUP_DESCRIPTION_CHAR_LIMIT = 600
@@ -30,4 +26,15 @@ GROUP_DESCRIPTION_CHAR_LIMIT = 600
 MAX_NOTIFICATIONS_FETCHED = 2 # SET TO 15
 
 ## models
+# page size for the posts cursor query
 MAX_POSTS_FETCHED = 2 # SET TO 15 or 20 or 10
+
+## widget_handler
+HOT_GROUPS_WIDGET_LIMIT = 5
+
+#-------- IMAGE SIZES FOR NON-KO PAGES (pixels)--------#
+
+# group_landing_page
+GROUP_LP_GROUP_THUMB = 60
+GROUP_LP_CREATOR_THUMB = 60
+GROUP_LP_RECENT_POSTS_THUMB = 60

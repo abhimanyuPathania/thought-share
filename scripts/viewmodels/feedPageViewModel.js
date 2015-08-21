@@ -1,29 +1,42 @@
 
-define(['knockout', 'jquery', 'sammy', 'helper'], function(ko, $, Sammy, helper) {
+define(['knockout',
+		'jquery',
+		'sammy',
+		'helper',
+		'constants',
+		'libs/autosize.min'],
+function(ko, $, Sammy, helper, constants, autosize) {
    
 return function feedPageViewModel() {
 	var self = this;
-
 	//---data---//
 
 	//this is used to pass as a reference to post ntf component
-	self.feedPageViewModelRef = self;
+	self.parentRef = self;
+	
+	//this serves as an id for feedPageViewModel
+	self.feedPage = true;
 
+	//instantiated from the user json fetched via hidden html
 	self.user = null;
 
 	self.groups = ko.observable();
 	self.currentGroup = ko.observable();
+	self.hotGroups = ko.observable();
 
 	self.feed = ko.observableArray();
 	self.moreFeed = ko.observable();
 	self.postCursor = null;
 
+	//holds text user types in text area
 	self.userPost = ko.observable();
 
 	//this flag saves us from polling server to get latest posts in feed
 	self.newFeedFlag = ko.observable(false);
 	
+	//kick of the data fetching functions
 	setGroupsAndUser();
+	getHotGroups();
 
 	//---behaviour---//
 	self.updateCurrentGroup = function(group) {
@@ -45,7 +58,7 @@ return function feedPageViewModel() {
 		}
 
 		var currentFeed = self.feed()
-		var latestTimestamp = currentFeed[0].created;
+		var latestTimestamp = getLatestPostTimestamp();
 
 		$.ajax({
 			url: "/ajax/update-group-feed",
@@ -61,6 +74,12 @@ return function feedPageViewModel() {
 
 				//looping in reverse
 				for (var i=postArray.length-1; i>=0; i--) {
+
+					//ignore the post by posted by user in the updates to fix feed holes
+					if(postArray[i].user_id === self.user.id){
+						continue;
+					}
+					
 					//add the post at the front of existing feed
 					currentFeed.unshift(new FeedPost(postArray[i]));
 				}
@@ -72,7 +91,7 @@ return function feedPageViewModel() {
 			},
 
 			error: function(){
-				console.log("Something went wrong while updating FEED");
+				console.log("ERROR", "updateCurrentGroupFeed");
 			}
 		}); // end $.ajax
 	
@@ -106,11 +125,15 @@ return function feedPageViewModel() {
 				self.userPost(null);
 				//create the post model using object returned and
 				//adding poster properties (self.user)
-				postObj.poster_name = self.user.name;
-				postObj.poster_image = self.user.thumbnail_url;
- 
+				postObj.poster_name = self.user.display_name;
+				postObj.poster_image = self.user.image_url;
+ 				
+				var postObjProcessed = new FeedPost(postObj);
+ 				// extra property on post obj when user posts in group
+				postObjProcessed.selfPosted = true;
+				
 				//using ko's unshift causes auto UI refresh
-				self.feed.unshift(new FeedPost(postObj));
+				self.feed.unshift(postObjProcessed);
 			},
 
 			error: function(xhr) {
@@ -148,16 +171,18 @@ return function feedPageViewModel() {
 		});
 	};
 
-	self.editPost = function(post) {
+	self.editPost = function(post, event) {
 		post.editing(true);
+		post.preEditPost = post.post();
 	};
 
-	self.cancelEdit = function(post) {
+	self.cancelEdit = function(post, event) {
 		post.editing(false);
+		post.post(post.preEditPost);
 	};
 
-	self.saveEdit = function(post) {
-		console.log(post.post());
+	self.saveEdit = function(post, event) {
+		console.log("save edit");
 		// front end validation for edited post here
 
 		$.ajax({
@@ -191,11 +216,46 @@ return function feedPageViewModel() {
 		if(groups.length <= 0) {
 			return;
 		}
+		//set thumbnail for user
+		user.thumbnail_url = helper.getImageURL(user.image_url,
+												constants.FEED_TEXTAREA_USER_IMAGE,
+												"user");
 
+		//set thumbnails for the groups
+		for(var i=0, l=groups.length; i<l; i++){
+			groups[i].cover_image_url = helper.getImageURL(groups[i].cover_image_url,
+															constants.GROUP_LIST_ITEM_IMAGE,
+															"group");
+		}
 		//intialize observables
 		self.groups(groups);
 		self.currentGroup(groups[0]);
 	};
+
+	function getHotGroups(){
+		$.ajax({
+			url: "/ajax/widget/hot-groups",
+			type: "GET",
+			dataType: "json",
+
+			success: function(resp){
+				if(!resp || resp.length === 0){
+					return;
+				}
+
+				var groupsArray = [];
+				for (var i=0, len=resp.length; i<len; i++){
+					groupsArray.push(new HotGroup(resp[i]));
+				}
+
+				self.hotGroups(groupsArray);
+			},
+
+			error: function(){
+				console.log("ERROR", "getHotGroups");
+			}
+		});
+	}
 
 	function fetchCurrentGroupFeed() {
 		// fetches an object with properties 'post_list', 'cursor_str', 'more'
@@ -239,7 +299,7 @@ return function feedPageViewModel() {
 
 	// Client-side routes    
     Sammy(function() {
-        this.get('#:gid', function() {
+        this.get('/feed#:gid', function() {
         	var sammyThis = this;
         	//this part is just to get the group obj from the id hash...
             var group = self.groups().filter(function(grp) {
@@ -257,6 +317,9 @@ return function feedPageViewModel() {
             //remove the previous group's feed
             self.feed([]);
 
+            //set the new feed flag to false
+            self.newFeedFlag(false);
+
             //clear previous cursor
             self.postCursor = null;
 
@@ -268,11 +331,37 @@ return function feedPageViewModel() {
         //this also lets other routes function
         this.get('/feed', function() {
         	if (self.currentGroup()){
-        		var defaultRoute = "#" + self.currentGroup().id;
+        		var defaultRoute = "/feed#" + self.currentGroup().id;
         		this.app.runRoute('get', defaultRoute);
         	}
     	});
     }).run();
+
+	//setup the textarea resize
+	autosize($("#postInGroup textarea"));
+
+function getLatestPostTimestamp(){
+	/* Called in updateCurrentGroupFeed to get the latest timestamp
+	   of the post by user other than self in feed.
+	*/
+	var postArray = self.feed();
+	if (!postArray.length){
+		return 0;
+	}
+	//intialize to most recent by default
+	var latestTimestamp = postArray[0].created;
+
+	for (var i=0, len=postArray.length; i<len; i++){
+		// [0] index is the latest
+		// find the latest post in feed which is not posted by the user itself
+		if(!postArray[i].selfPosted){
+			latestTimestamp =  postArray[i].created;
+			break;
+		}
+	}
+
+	return latestTimestamp;
+}
 
 function FeedPost(post) {
 
@@ -280,11 +369,18 @@ function FeedPost(post) {
 	this.group_name = post.group_name;
 	this.user_id = post.user_id;
 	this.poster_name = post.poster_name
-	this.poster_image = post.poster_image;
+
+	//get thumbnail url
+	this.poster_image = helper.getImageURL(post.poster_image,
+										   constants.FEED_POSTER_IMAGE,
+										   "user");
 	
 	// only user observables for own/editable posts
 	if (post.user_id === self.user.id){
 		this.post = ko.observable(post.post);
+
+		//add a preEdit property to restore post on cancel edit functionality
+		this.preEditPost = null;
 	} else {
 		this.post = post.post;
 	}
@@ -294,6 +390,22 @@ function FeedPost(post) {
 	this.timestampText = helper.getTimestampText(post.created);
 
 	this.editing = ko.observable(false);
+}
+
+function HotGroup(g){
+	this.name = g.name;
+	this.url = "/group/" + g.id;
+	this.membersNumber = g.members_number;
+	this.membersText = (function(){
+		var num = g.members_number;
+		return (num === 1 ? num + " member" : num + " members");
+	}());
+	
+	this.imageURL = g.cover_image_url;
+	this.thumbURL = helper.getImageURL(g.cover_image_url,
+									   constants.HOT_GROUPS_IMAGE,
+									   "group");
+	
 }
 
 }; // end view model

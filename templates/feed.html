@@ -1,72 +1,107 @@
 
-{% extends 'base.html' %}
+{% extends 'base_navbar.html' %}
 
 {% block title %}
 	<title>Thought Share</title>
 {% endblock %}
 
-{% block content %}
+{% block style_sheets %}
+	<link rel="stylesheet" href="../stylesheets/feed.css">
+{% endblock %}
+
+{% block json_elements %}
 	<span style="display:none" id="userGroupsJSON" data-groupJSON = "{{group_json}}"></span>
 	<span style="display:none" id="userJSON" data-userJSON = "{{user_json}}"></span>
-	
-	<script type="text/javascript" data-main="../scripts/feedMain" src="../scripts/require.js"></script>
-	<h2>Your feedpage // {{display_name}} //</h2>
-	<a href="{{status_url}}">Logout</a>
-	
-	<div>
-		<post-notification params="parent: feedPageViewModelRef"></post-notification>
-		<request-notification></request-notification>
-		<group-search></group-search>	
-	</div>
+{% endblock %}
 
-	<div>
-		<h4>Groups joined</h4>
-        <ul data-bind="foreach: groups">
-        	<li data-bind = "text: name, click: $parent.updateCurrentGroup"></li>
-        </ul>	
-	</div>
+{% block scripts %}	
+	<script type="text/javascript" data-main="../scripts/feedMain" src="../scripts/libs/require.js"></script>
+{% endblock %}
+
+{% block content %}
 	
-	<h4>Feed</h4>
-	<!-- ko if: currentGroup() -->
+<div class="fixed-col">
+	<h4>Your Groups</h4>
+    <div id="groupList" data-bind="foreach: groups">
+    	<div class="group-item">
+    		<img class="group-image" data-bind="attr:{src: cover_image_url, alt: name+' cover image'}">	
+    		<p class="group-name" data-bind = "text: name, click: $parent.updateCurrentGroup"></p>
+    	</div>
+    </div>	
+</div>
+
+<div class="scrollable-col clearfix">
+
+	<div class="center-col">
 		<button data-bind = "enable: newFeedFlag(), click:updateCurrentGroupFeed">you got new posts</button>
-		<p><strong data-bind = "text: currentGroup().name"></strong></p>
-		<div>
-			<h5>Post in this group</h5>
-			<textarea cols="30" rows="10" data-bind="textInput: userPost"></textarea>
-			<p><button data-bind="click:postInCurrentGroup">Post</button></p>			
-		</div>
-    <!-- /ko -->
-
-    <!-- ko ifnot: feed() && currentGroup() -->
-		<p>no posts in this group yet</p>
-    <!-- /ko -->
-	<ul data-bind = "foreach: feed">
-		<li>
+		<!-- ko if: currentGroup() -->
+			<p><strong data-bind = "text: currentGroup().name"></strong></p>
 			<div>
-				<img data-bind = "attr: {src: poster_image}">
-				<b data-bind = "text: poster_name"></b>
-				<i data-bind = "text: timestampText"></i>
+				<div id="postInGroup">
+					<img data-bind="attr:{src: user.thumbnail_url}">
+					<textarea  data-bind="textInput: userPost"></textarea>
+				</div>
+				<p><button data-bind="click:postInCurrentGroup">Post</button></p>			
 			</div>
-			<div data-bind="visible: !editing()">
-				<p data-bind = "text: post"></p>
-				<!-- ko if: $root.user.id === user_id -->
-					<div>
-						<button type="button" data-bind="click: $root.editPost">Edit</button>
-						<button type="button" data-bind="click: $root.deletePost">Delete</button>
-					</div>
-			    <!-- /ko -->
-			</div>
-			<!-- ko if: $root.user.id === user_id -->
-				<div data-bind="visible: editing()">
-					<textarea cols="25" rows="2" data-bind="textInput: post"></textarea>
-					<div>
-						<button type="button" data-bind="click: $root.saveEdit">Save</button>
-						<button type="button" data-bind="click: $root.cancelEdit">Cancel</button>
+		<!-- /ko -->
+
+		<div id="postList" data-bind = "foreach: feed">
+
+			<div class="post-item">
+
+				<div class="post-item-poster">
+					<img class="poster-image" data-bind="attr: {src: poster_image}">
+					<div class="poster-info">
+						<p class="poster-name" data-bind="text: poster_name"></p>
+						<p>
+							<span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': created }"></span>
+						</p>
 					</div>
 				</div>
-			<!-- /ko -->
-		</li>
-	</ul>
-	<button data-bind="visible: moreFeed(), click: fetchMorePosts">Show more posts</button>
-	
+
+				<div class="post-item-post" data-bind="visible: !editing()">
+					<p data-bind = "text: post"></p>
+					<!-- ko if: $root.user.id === user_id -->
+						<div class="post-controls">
+							<button type="button" data-bind="click: $root.editPost">Edit</button>
+							<button type="button" data-bind="click: $root.deletePost">Delete</button>
+						</div>
+				    <!-- /ko -->
+				</div> <!-- END POST-ITEM-POST -->
+				<!-- ko if: $root.user.id === user_id -->
+						<div class="post-edit" data-bind="visible: editing()">
+							<textarea class="post-edit-input" data-bind="textInput: post"></textarea>
+							<div class="post-edit-controls">
+								<button type="button" data-bind="click: $root.saveEdit">Save</button>
+								<button type="button" data-bind="click: $root.cancelEdit">Cancel</button>
+							</div>
+						</div>
+				<!-- /ko -->
+			</div><!-- END POST-ITEM -->
+
+		</div><!-- END POST-LIST DIV -->
+
+		<div>
+			<button data-bind="visible: moreFeed(), click: fetchMorePosts">Show more posts</button>
+		</div>
+		
+	</div><!-- END CENTER COL -->
+
+	<div class="right-col">
+		<div>
+			<h3>Hot Groups</h3>
+			<div data-bind="foreach: hotGroups">
+				<div>
+					<img data-bind="attr: {src: thumbURL, alt: name + ' group\'s thumbnail'}">
+					<div>
+						<p><a data-bind="text:name, attr: {href: url}"></a></p>
+						<p data-bind="text: membersText"></p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div><!-- END RIGHT COL -->
+
+</div><!-- END SCROLLABLE COL -->
+		
 {% endblock %}

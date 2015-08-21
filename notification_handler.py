@@ -75,14 +75,10 @@ class RequestNotificationHandler(Handler):
 		if cursor_str:
 			cursor = Cursor(urlsafe = cursor_str)
 
-		if initial_fetch:
-			# (results, timestamp_list)
-			requests_tuple = PrivateRequest.fetch_requests(user.admin_groups,
-														   cursor, initial_fetch=True)
-		else:
-			# (results, cursor, more)
-			requests_tuple = PrivateRequest.fetch_requests(user.admin_groups,
-														   cursor, initial_fetch=True)
+		# (results, timestamp_list) if intial fetch
+		# (results, cursor, more) in not initial fetch
+		requests_tuple = PrivateRequest.fetch_requests(user.admin_groups,
+													   cursor, initial_fetch=initial_fetch)
 
 		# both tuples return list of requests as first item
 		if not requests_tuple[0]:
@@ -221,86 +217,3 @@ class CheckPostNotificationHandler(Handler):
 		result['number'] = num
 
 		return self.render_json(result)
-
-
-
-# class UpdatePostNotificationsStatus(Handler):
-# 	#since this request causes persistent changes, use a post
-# 	def post(self):
-# 		if not self.account:
-# 			return None
-
-# 		timestamp = int(self.request.get("timestamp"))
-# 		notifications = memcache.get(self.user_id, namespace = NOTF_NAMESPACE)
-# 		if not notifications:
-# 			return None
-
-# 		#if the timestamp sent by client is newer(greater) than that of notification
-# 		#mark it as read
-# 		for n in notifications:
-# 			if timestamp >= int(n["timestamp"]):
-# 				n["read"] = True
-
-# 		memcache.set(self.user_id, notifications, namespace = NOTF_NAMESPACE)
-# 		return self.render_json(True);
-
-
-
-
-###Old Alogorithms...can be user to model hard notifications
-
-# def create_notifications(user_key_list, notification):
-# 	user_id_list = [user_key.id() for user_key in user_key_list]
-# 	#namespace = 'notifications'
-# 	memcache_dump = {}
-# 	for user_id in user_id_list:
-# 		existing_notifications = memcache.get(user_id, namespace = 'notifications')
-# 		if not existing_notifications:
-# 			memcache_dump[user_id] = [notification]
-# 		else:
-# 			existing_notifications.append(notification)
-# 			memcache_dump[user_id] = existing_notifications
-# 	memcache.set_multi(memcache_dump, namespace = 'notifications')
-
-# def create_notifications(user_key_list, notification_content):
-# 	user_id_list = [user_key.id() for user_key in user_key_list]
-
-# 	for user_id in user_id_list:
-# 		notification_key = 'notifications|' + user_id
-# 		notification_flag = 'notif-flag|' + user_id
-
-# 		notifications = memcache.get(notification_key)
-# 		if not notifications:
-# 			memcache.set(notification_key, notification_content)
-# 			memcache.set(notification_flag, 'False')
-
-# 		else:
-# 			notification_read = memcache.get(notification_flag)
-# 			if notification_read == 'False':
-# 				notifications = notifications + '+' + notification_content
-# 				memcache.set(notification_key, notifications)
-# 				memcache.set(notification_flag, 'False')
-# 			else:
-# 				notifications = notifications + '|' + notification_content
-# 				memcache.set(notification_key, notifications)
-# 				memcache.set(notification_flag, 'False')
-
-# def get_notifications(user_id):
-# 	notification_key = 'notifications|' + user_id
-# 	notification_flag = 'notif-flag|' + user_id
-
-# 	notifications = memcache.get(notification_key)
-# 	if not notifications:
-# 		return None
-# 	else:
-# 		notification_read = memcache.get(notification_flag)
-# 		if notification_read == 'False':
-# 			#set the notification_flag to True
-# 			memcache.set(notification_flag, 'True')
-
-# 			#return latest unread notifications
-# 			return notifications.split('|').pop().split('+')
-# 		else:
-# 			return ['No NEW notifications']
-
-

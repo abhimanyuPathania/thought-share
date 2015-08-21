@@ -11,8 +11,9 @@ from google.appengine.ext import blobstore
 from helper_functions import *
 from helper_operations import add_to_index
 
-from constants import THUMBNAIL_SIZE, USERS_NAMESPACE, GROUP_DESCRIPTION_CHAR_LIMIT
+from constants import USERS_NAMESPACE
 from constants import MAX_POSTS_FETCHED, MAX_NOTIFICATIONS_FETCHED
+from constants import GROUP_DESCRIPTION_CHAR_LIMIT
 
 class User(ndb.Model):
 	email = ndb.StringProperty(required = True, indexed = False)
@@ -21,8 +22,6 @@ class User(ndb.Model):
 	#change default value for basic avatars
 	image_blob = ndb.BlobKeyProperty (indexed = False)
 	image_url = ndb.StringProperty(indexed = False, default = None)
-	thumbnail_url = ndb.StringProperty(indexed = False, default = None)
-
 	admin_groups = ndb.KeyProperty(repeated = True, indexed = False)
 	groups = ndb.KeyProperty(repeated = True, indexed = False)
 
@@ -47,7 +46,6 @@ class User(ndb.Model):
 			#set new image properties
 			new_user.image_blob = image_blob_key
 			new_user.image_url = images.get_serving_url(image_blob_key)
-			new_user.thumbnail_url = images.get_serving_url(image_blob_key, size=THUMBNAIL_SIZE, crop=False)
 
 		# set the memcache and create account
 		memcache.set(user_id, True, namespace = USERS_NAMESPACE)
@@ -81,7 +79,6 @@ class User(ndb.Model):
 			#set new image properties
 			user.image_blob = image_blob_key
 			user.image_url = images.get_serving_url(image_blob_key)
-			user.thumbnail_url = images.get_serving_url(image_blob_key, size=THUMBNAIL_SIZE, crop=False)
 
 		user.put()
 		return True
@@ -231,12 +228,12 @@ class Group(ndb.Model):
 	private = ndb.BooleanProperty(default = False)
 	cover_image_blob_key = ndb.BlobKeyProperty (indexed = False)
 	cover_image_url = ndb.StringProperty(indexed = False)
-	cover_image_thumbnail = ndb.StringProperty(indexed = False)
 	created = ndb.DateProperty(auto_now_add = True, indexed = False)
 
 	creator = ndb.KeyProperty(kind = User)
 	admins = ndb.KeyProperty (kind = User, repeated = True)
 	members = ndb.KeyProperty (kind = User, repeated = True)
+	members_number = ndb.ComputedProperty(lambda self: len(self.members))
 
 	@classmethod
 	def create_group(cls, name, description, creator, private, cover_image_blob):
@@ -249,7 +246,7 @@ class Group(ndb.Model):
 		if not description or description.isspace():
 			raise BadUserInputError('please enter group description')
 
-		if len(description) > 600:
+		if len(description) > GROUP_DESCRIPTION_CHAR_LIMIT:
 			raise BadUserInputError('group description exceeds limit')
 
 		#get sanitized group name/id
@@ -287,14 +284,13 @@ class Group(ndb.Model):
 				#add cover image fields if image uploaded
 				new_group.cover_image_blob_key = cover_image_blob_key
 				new_group.cover_image_url = images.get_serving_url(cover_image_blob_key)
-				new_group.cover_image_thumbnail = images.get_serving_url(cover_image_blob_key, size=THUMBNAIL_SIZE)
 			
 			if new_group_key not in creator_user.groups:
 				creator_user.groups.append(new_group_key)
 
 			#!!!!!!!!!!!!!!!!!!!both the below fields can cause exceptions
 			ndb.put_multi([creator_user, new_group])
-			add_to_index(group_id, group_name, new_group.cover_image_thumbnail)
+			add_to_index(group_id, group_name, description, new_group.cover_image_url)
 
 			return new_group_key
 
@@ -367,12 +363,10 @@ class Group(ndb.Model):
 			#update to newly uploaded
 			group.cover_image_blob_key = blob_key
 			group.cover_image_url = images.get_serving_url(blob_key)
-			group.cover_image_thumbnail = images.get_serving_url(blob_key, size=THUMBNAIL_SIZE)
-
-			#update the search index document to contain latest image url
-			add_to_index(group_id, group.name, group.cover_image_thumbnail)
 
 		group.put()
+		#update the search index document to contain latest image url or description
+		add_to_index(group_id, group.name, group.description, group.cover_image_url)
 		return True
 
 
@@ -385,10 +379,9 @@ class Group(ndb.Model):
 		if group_key not in user.groups:
 			return False
 
+		# delete_item removes duplicates in case they exist
 		user.groups = delete_item(user.groups, group_key)
 		group.members = delete_item(group.members, user_key)
-		# user.groups.remove(group_key)
-		# group.members.remove(user_key)
 
 		if group.private:
 			# check/del for existing admin request by the user in leaving group
@@ -399,11 +392,9 @@ class Group(ndb.Model):
 			# if leaving user is also an admin
 			if user_key in group.admins:
 				# remove user from admin list
-				# group.admins.remove(user_key)
 				group.admins = delete_item(group.admins, user_key)
 
 				# remove group from user's admin_groups
-				# user.admin_groups.remove(group_key)
 				user.admin_groups = delete_item(user.admin_groups, group_key)
 
 		ndb.put_multi([user, group])

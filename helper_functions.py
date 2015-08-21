@@ -5,7 +5,29 @@ import datetime
 from constants import GROUP_NAME_RE, DISPLAY_NAME_RE
 from constants import SECONDS_IN_DAY, MAX_IMAGE_SIZE_BYTES
 from constants import MAX_NOTIFICATIONS_FETCHED
+from constants import DEFAULT_USER_IMAGE, DFAULT_GROUP_IMAGE
 
+def get_thumbnail_url(url, size, image_type):
+	IMAGE_RE = re.compile(r'.(jpg|png|jpeg)$')
+	url_original = url
+	if not url:
+		if image_type == 'user':
+			url = DEFAULT_USER_IMAGE
+		if image_type == 'group':
+			url = DFAULT_GROUP_IMAGE
+    
+    # only crop image if size is not 0
+	# 0 size implies return the original image
+	if size != 0:
+		if url_original:
+		    url = url + '=s' + str(size) + '-c'
+		else:
+		    #fix size for defaults
+		    m = IMAGE_RE.search(url)
+		    dot_index = m.span()[0]
+		    url = url[:dot_index] + str(size) + url[dot_index:]
+    
+	return url
 
 def check_group_name(name):
 	if not GROUP_NAME_RE.match(name):
@@ -68,9 +90,12 @@ def build_suggestions(str):
     return ' '.join(suggestions)
 
 def delete_item(item_list, item_to_delete):
+	# this removes duplicates
     return [item for item in item_list if item != item_to_delete]
 
 def limit_notifications(list1, list2):
+	# this is called before add_user_name_image function and hence takes
+	# two equal length lists of data and user keys
 	if len(list1) <= MAX_NOTIFICATIONS_FETCHED:
 		return list1, list2
 

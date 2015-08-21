@@ -1,15 +1,40 @@
 
-<h4>Post Notifications</h4>
+<!-- Each component's markup has
+	> div.dropdown-display: Markup displayed on the main navbar
+	> div.dropdown-wrapper: hidden container for dropdown's content
+ -->
 
-<button data-bind = "click: displayNotifications">Read</button>
+<div class="dropdown-display">
+	<button data-bind="click: displayNotifications">Read</button>
+	<span data-bind="text: unreadPostNotifications, visible:unreadPostNotifications() > 0 "></span>
+</div>
 
-<p>You have <b data-bind = "text: unreadPostNotifications"></b> unread notificaitons</p>
-<div id="notifications" style="display:none;">
-	<h4>Notifications</h4>
-	<ul data-bind= "foreach: postNotifications">
-		<li>
-			<p data-bind = "text: notificationText"></p>
-			<p><i data-bind = "text: timestampText"></i></p>
-		</li>
-	</ul>
+<div class="dropdown-wrapper">
+	<b class="callout-notch callout-notch-border"></b>
+	<b class="callout-notch"></b>
+	<div class="dropdown-items-heading">
+		<h4>Notifications</h4>
+	</div>
+	
+	
+	<div class="dropdown-items-list">
+		<!-- using foreach without container element -->
+		<!-- ko foreach: postNotifications -->
+	        <div class="dropdown-item">
+	        	<img class="dropdown-item-image" data-bind="attr: {src: posterImage, alt: posterName + '\'s profile picture'}">
+
+	        	<div class="dropdown-item-message">
+	        		<p data-bind = "text: notificationText"></p>
+					<p>
+						<span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': timestamp, 'data-notification': true }"></span>
+					</p>
+	        	</div>
+			</div>
+    	<!-- /ko -->
+	</div>
+
+	
+	<div class="dropdown-items-footer">
+		<a href="/view-profile#notifications">View all</a>
+	</div>
 </div>

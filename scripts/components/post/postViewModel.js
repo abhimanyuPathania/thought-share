@@ -7,33 +7,24 @@
   notifications tab on his profile.
 > localStorage is used to keep the count of ntf over page redirects and logouts */
 
-define(['knockout','jquery', 'helper', 'text!components/post/postTemplate.html'], function(ko, $, helper, htmlString) {
+define(['knockout',
+		'jquery',
+		'helper',
+		'constants',
+		'libs/text!components/post/postTemplate.html'],
+function(ko, $, helper, constants, htmlString) {
 
-function PostNotificationViewModel(feedViewModel) {
-
-	//set parent to null for the component usage on non-feed pages
-
-	/*parent property of the passed 'this'(self.feedPageViewModelRef = self)
-	  value is the actual parent viewmodel */
-	var parent = feedViewModel ? feedViewModel.parent : null;
-
+function PostNotificationViewModel(params) {
+	var parent = null;
+	if (params.parentRef && params.parentRef.feedPage){
+		parent = params.parentRef;
+	}
     var self = this;
     var recentNtfTimestamp = 0;
     var POST_NTF_NUMBER_KEY = "ts-post-ntf-number";
-    var MAX_NTF_SHOWN = 2;
+    var MAX_NTF_SHOWN = constants.MAX_NOTIFICATIONS_SHOWN;
 
-    var notificationsDiv = $("#notifications");
-    // model for post notifications
-    function PostNotification(n){
-		var self = this;
-
-		self.notificationText = helper.getPostNotificationText(n)
-		self.postId = n.post_id;
-		self.groupId = n.group_id;
-		self.posterImage = n.poster_image;
-		self.timestamp = n.timestamp;
-		self.timestampText = helper.getTimestampText(n.timestamp, true);
-	};
+    var notificationWrapper = $("#notifications .dropdown-wrapper");
 
 	// these are the references to the observables from parent(feedPageViewModel)
 	if (parent) {
@@ -56,14 +47,15 @@ function PostNotificationViewModel(feedViewModel) {
 	self.displayNotifications = function() {
 		self.unreadPostNotifications(0);
 		localStorage.setItem(POST_NTF_NUMBER_KEY, 0);
-		notificationsDiv.toggle(300);
+
+		helper.toggleDropdown(notificationWrapper);
 	}
 
 	function fetchPostNotification() {
 
-		var temp = self.postNotifications();
+		var existingNtf = self.postNotifications();
 		// force timestamp to 0 to fetch ntf if there are not any in ViewModal
-		if(!temp) {
+		if(!existingNtf) {
 			recentNtfTimestamp = 0;
 		}
 
@@ -85,49 +77,32 @@ function PostNotificationViewModel(feedViewModel) {
 				if (parent && self.currentGroup()) {
 					currentGroupId = self.currentGroup().id;
 				}
-
-				var latestPost;
-				var	latestPostId;
-
-				if ( parent && self.feed() ){
-					latestPost = self.feed()[0]
-					//in case of empty array
-					if (latestPost) {
-						latestPostId = latestPost.post_id;
-					}		
+				
+				//make Array of PostNotifications object from raw server side data
+				var ntfProcessed = [];
+				for (var i=0, len=notifications.length; i<len; i++){
+					ntfProcessed.push(new PostNotification(notifications[i])); 
 				}
 				
-				/* n inside the function is still modeled as the object from server,
-				   so use server side(python) property names */
-				var ntfProcessed = $.map(notifications, function(n, i){
-					/*raise new post flag only if
-						>> there is an unread notification about current group
-						>> notification is of type "post"
-						>> we have a post in the feed
-						>> notification is about a post that is not in the current group feed
-					*/
-					if(n.group_id === currentGroupId && n["type"] === "post" && latestPostId && n.post_id !== latestPostId){
-						
-						//for the bug when user posts itself in group without checking any pending notf
-						if (latestPost.user_id !== self.user["id"]){
-							self.newFeedFlag(true); 
-						}
+				// if parent exists then only call the newPostAvailable test
+				if (parent && currentGroupId){
+					
+					//if newFeedFlag is already set to true then ignore
+					if (!self.newFeedFlag()){
+						// directly pass func call to the observable in returned value is bool
+						self.newFeedFlag( newPostAvailable(self.feed(), ntfProcessed, currentGroupId) );
 					}
-					return new PostNotification(n);
-				});
+					
+				}
 
 				//update most recently fetched timestamp
 				recentNtfTimestamp = ntfProcessed[0].timestamp;
 				
 				var showNotifications = ntfProcessed;
-				//temp holds current notifications
-				if(temp) {
-					//update timestampText on existing notifications
-					for (var i=0, l=temp.length; i<l; i++) {
-						temp[i].timestampText = helper.getTimestampText(temp[i].timestamp);
-					}
+				//existingNtf holds current notifications
+				if(existingNtf) {
 					// add current notifications behind new ones fetched
-					showNotifications = ntfProcessed.concat(temp);				
+					showNotifications = ntfProcessed.concat(existingNtf);				
 				}
 
 				//reduce them to the maximum number to be shown; displaying most recent
@@ -143,7 +118,7 @@ function PostNotificationViewModel(feedViewModel) {
 			error: function(){
 				//fetch all again
 				recentNtfTimestamp = 0;
-				console.log("Something went wrong while fetching post NOTIFICATIONS");
+				console.log("ERROR:", "fetchPostNotification");
 			}
 
 		}); //end ajax request
@@ -187,8 +162,78 @@ function PostNotificationViewModel(feedViewModel) {
 				console.log(status, "happened while checking post notifications");
 			},
 
-			complete: setTimeout(doPostNotificationsPoll, 15000)
+			complete: setTimeout(doPostNotificationsPoll, constants.NOTIFICATION_POLLING)
 		});
+	};
+
+	function newPostAvailable(postArray, ntfArray, currentGroup){
+		var result = false;
+
+		//for each notification fetched
+		for (var i=0, len1 = ntfArray.length; i<len1; i++){
+			
+			var test = false;
+			
+			// if notification is about the current group or
+			// it is not of type post, then skip it
+			if ((ntfArray[i].groupId !== currentGroup) || 
+				(ntfArray[i].notificationType !== "post"))
+			{
+				continue;
+			}
+
+			/*this is the case when no posts exist in the group and we recieve 
+			  notification for that first post.
+			  Also, ntf has cleared the above test for current group and type
+			*/
+			if (postArray.length === 0){
+				test = true
+			} 
+
+			//for each notification fetched, check each post present
+			//(loop won't run for 0 length, as in above case)
+			for (var j=0, len2 = postArray.length; j<len2; j++){
+				
+				//get timestamps
+				var ntfTimestamp = parseInt(ntfArray[i].timestamp, 10);
+				var latestPostTimestamp = postArray[0].created;
+				
+				// if the notification is not about any post already present and
+				// notification is newer than latest post present
+				if ((ntfArray[i].postId !== postArray[j].post_id) &&
+					(ntfTimestamp > latestPostTimestamp))
+				{
+					//set the test variable to true and break from inner loop
+					test = true;
+					break;
+				}// end if
+
+			}// end inner postArray loop
+
+			// if notification tests positive than set the result to true
+			// break out of outer loop
+			if (test){
+				result = true;
+				break;
+			}
+
+		}// end outer ntfArray loop
+		return result;
+	};
+
+	// model for post notifications
+    function PostNotification(n){
+		var self = this;
+
+		self.notificationText = helper.getPostNotificationText(n)
+		self.notificationType = n["type"];
+		self.postId = n.post_id;
+		self.groupId = n.group_id;
+		self.groupName = n.group_name;
+		self.posterName = n.poster_name;
+		self.posterImage = helper.getImageURL(n.poster_image, constants.NOTIFICATION_IMAGE, "user");
+		self.timestamp = n.timestamp;
+		self.timestampText = helper.getTimestampText(n.timestamp, true);
 	};
 
 }; //end view model

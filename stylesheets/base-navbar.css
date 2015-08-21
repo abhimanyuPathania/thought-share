@@ -1,0 +1,241 @@
+*{
+	padding: 0;
+	margin: 0;
+}
+
+*, *:before, *:after {
+  -webkit-box-sizing: border-box; 
+  	 -moz-box-sizing: border-box; 
+  		  box-sizing: border-box;
+}
+
+html {
+    -ms-text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+}
+
+body{
+	font-family: 'Open Sans', 'Helvetica Neue', Georgia, Arial, sans-serif;
+	font-weight: 300;
+	font-size: 16px;
+	color: #444;
+
+	-moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+
+    padding-top: 50px;
+}
+
+h1{
+	font-size: 2em;
+	font-weight: 400;
+}
+
+h2,h3,h4{
+	font-weight: 300;
+}
+
+h2{ font-size: 1.5em; }
+h3{ font-size: 1.25em;}
+h3{ font-size: 1.15em;}
+
+strong{
+	font-weight: 600;
+}
+
+/* Deal with long strings with no white spaces */
+p,li,strong,
+h1,h2,h3,h4 {
+
+	/* non standard webkit */
+	-webkit-word-break: break-word;
+	-webkit-word-wrap: break-word;
+
+	word-break: break-word;
+	word-wrap: break-word;
+
+	/* changed name according to CSS3 spec */
+	overflow-wrap: break-word;
+
+}
+
+
+button {
+    overflow: visible;
+    border: 0;
+    font: inherit;
+    -webkit-font-smoothing: inherit;
+    letter-spacing: inherit;
+    /* background: none; */
+    cursor: pointer;
+}
+
+button:disabled{
+	color: red;
+}
+
+input[type=text]{
+	border: none;
+	font-family: inherit;
+	font-size: inherit;
+	color:inherit;
+	font-weight: inherit;
+}
+
+textarea{
+	font-family: inherit;
+	font-size: inherit;
+	color:inherit;
+	font-weight: inherit;
+}
+
+::-moz-focus-inner {
+    padding: 0;
+    border: 0;
+}
+
+img{
+	max-width: 100%;
+}
+
+.center-container{
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+/* this forces modals over top of navbar */
+.simple-modal-wrapper{
+	z-index: 9999;
+}
+
+/* NAVBAR */
+
+.navbar-wrapper{
+	width:100%;
+	position: fixed;
+	top:0;
+	
+	/* navbar must on top of everythin */
+	z-index: 1;
+
+	background-color: #ddd;
+}
+
+.navbar-content{
+	/* flex container */
+	display: flex;
+	padding: 10px 0px;
+}
+
+.navbar-item{
+	/* flex items */
+	position: relative;
+	margin-right: 20px;
+}
+
+.navbar-item:last-child{
+	 margin-right: 0; 
+}
+
+
+.dropdown-wrapper{
+	visibility: hidden;
+	position: absolute;
+	right:0;
+	top: 100%;
+	/* max-height:100px;  */
+	width: 400px;
+	opacity: 0;
+	background-color: #bbb;
+
+	transition: all 0.22s ease;
+	/* overflow: auto; */
+}
+
+.dropdown-wrapper.show{
+	visibility: visible;
+	top: calc(100% + 10px);
+  	opacity: 1;
+}
+
+.dropdown-items-heading{
+	border-bottom: 1px solid black;
+	padding: 5px;
+} 
+
+.dropdown-items-footer{
+
+}
+
+.dropdown-items-list{
+	max-height: 100px;
+	overflow: auto;
+}
+
+.dropdown-item{
+	width: 100%;
+	display: flex;
+	align-items: center;
+	padding: 5px;
+	border-bottom: 1px solid black;
+} 
+
+.dropdown-item-image{
+	max-width: 50px;
+	max-height: 50px;
+	margin-right: 10px;
+}
+
+
+/* dropdown menu notches */
+.callout-notch{
+	position:absolute;
+	margin:0;
+	padding:0;
+	width:0;
+	height:0;
+	right:10px;
+	top:-10px;
+	border-top: 0;
+	border-right: 10px solid transparent;
+	border-left: 10px solid transparent;
+	border-bottom: 10px solid #999;
+}
+
+.callout-notch-border{
+	border-bottom-color: red;
+	top: -11px;
+}
+
+
+/* ====== search dropdown ====== */
+
+/* make the search bar occupy vacant space */
+ #search.navbar-item{
+	flex: 1;
+}
+
+#search.navbar-item .input-addon{
+	width: 100%;
+}
+
+/*make the search dropdown as large as input*/
+#search .dropdown-wrapper{
+	width: 100%;
+}
+
+.input-addon{
+	display: flex;
+}
+
+.input-addon-field{
+	flex:1;
+}
+
+.input-addon-item{
+	background-color: #eee;
+} 
+
+
+/* ====== notification dropdown ====== */
+

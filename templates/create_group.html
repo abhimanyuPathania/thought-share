@@ -1,17 +1,21 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<title>create group</title>
-</head>
-<body>
-	<script data-main="../scripts/createGroupMain" src="../scripts/require.js"></script>
-	
-	<div>
-		<post-notification params="parent: null"></post-notification>
-		<request-notification></request-notification>
-	</div>
 
+{% extends 'base_navbar.html' %}
+
+{% block title %}
+	<title>Create Group</title>
+{% endblock %}
+
+{% block style_sheets %}
+{% endblock %}
+
+{% block json_elements %}
+{% endblock %}
+
+{% block scripts %}	
+	<script data-main="../scripts/createGroupMain" src="../scripts/libs/require.js"></script>
+{% endblock %}
+
+{% block content %}
 	<h2>create new group</h2>
 	<form id= "createGroupForm" method="POST" action="{{form_action}}" enctype="multipart/form-data">
 		<div>
@@ -22,7 +26,7 @@
 		<div>
 			<label for="">Group description</label>
 			<textarea name="description" id="" cols="30" rows="10">{{description}}</textarea>
-			<span id="descCount">600</span>
+			<span id="descCount">{{description_limit}}</span>
 		</div>
 		<div>
 			<label for="">Cover image</label>
@@ -39,5 +43,4 @@
 			{{error}}
 		</div>
 	</form>
-</body>
-</html>
+{% endblock %}

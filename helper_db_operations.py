@@ -10,7 +10,10 @@ from google.appengine.datastore.datastore_query import Cursor
 from models import *
 from helper_operations import add_user_name_image
 
-def get_feed(cursor_str, group_id = None, user_id = None, add_poster = True):
+def get_feed(cursor_str, group_id = None,
+			 user_id = None,
+			 add_poster = True,
+			 thumbnail_size=None):
 
 	#  fetch_page_tuple (results, cursor, more)
 	cursor = None
@@ -47,7 +50,7 @@ def get_feed(cursor_str, group_id = None, user_id = None, add_poster = True):
 	#add updated user names and images if add_poster is True
 	#added by default
 	if add_poster:
-		feed = add_user_name_image(feed, user_key_list)
+		feed = add_user_name_image(feed, user_key_list, thumbnail_size = thumbnail_size)
 
 	feed_result['post_list'] = feed
 	return feed_result
@@ -69,7 +72,9 @@ def update_group_feed(group_id, timestamp):
 		user_key = ndb.Key(User, post.user_id)
 		user_key_list.append(user_key)
 
-	updates = add_user_name_image(updates, user_key_list)
+	# since this only fetches the post updates whose thumbnail sizes are controlled by
+	# client side code, pass thumbnail_size as None
+	updates = add_user_name_image(updates, user_key_list, thumbnail_size = None)
 	return updates
 
 

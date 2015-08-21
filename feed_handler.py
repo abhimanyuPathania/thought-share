@@ -9,7 +9,7 @@ from utility_handler import Handler
 from models import User, Group
 
 from helper_operations import get_group_data
-from constants import DEFAULT_USER_AVATAR
+from constants import DEFAULT_USER_IMAGE
 
 class FeedHandler(Handler):
 	def get(self):
@@ -20,16 +20,11 @@ class FeedHandler(Handler):
 
 		# add user's groups to undisplayed span's data-grouJSON attribute
 		# this is required for the client side routing to works
-		groups_list = get_group_data(user.groups, ['name', 'private'])
+		groups_list = get_group_data(user.groups, ['name', 'private', 'cover_image_url'])
 		group_json = json.dumps(groups_list)
 
 		# add user's data from client side user object
 		user_data = user.to_dict(exclude = ['image_blob', 'admin_groups', 'groups'])
-		
-		# add default images if required
-		if not user.image_blob:
-			user_data["thumbnail_url"] = DEFAULT_USER_AVATAR
-			user_data["image_url"] = DEFAULT_USER_AVATAR
 
 		#add user id
 		user_data['id'] = self.user_id

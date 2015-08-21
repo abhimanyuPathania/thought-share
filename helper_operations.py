@@ -14,10 +14,9 @@ from google.appengine.api import images
 from helper_functions import build_suggestions 
 from helper_functions import process_query_string
 from helper_functions import limit_notifications
+from helper_functions import get_thumbnail_url
 
 from constants import NOTF_NAMESPACE, USERS_NAMESPACE
-from constants import DEFAULT_USER_AVATAR, DFAULT_GROUP_IMAGE
-
 
 def check_user_warm_cache(user_key):
 	user_id = user_key.id()
@@ -37,12 +36,21 @@ def check_user_warm_cache(user_key):
 
 def add_user_name_image(target_list, users_key_list,
 						name_property = "poster_name",
-						image_property = "poster_image"):
+						image_property = "poster_image",
+						thumbnail_size = None):
 	
 	users = ndb.get_multi(users_key_list)
 	for i in range(len(target_list)):
 		target_list[i][name_property] = users[i].display_name
-		target_list[i][image_property] = users[i].thumbnail_url or DEFAULT_USER_AVATAR
+
+		# add option for getting thumbnails for the non KO pages
+		if thumbnail_size:
+			target_list[i][image_property] = get_thumbnail_url(users[i].image_url,
+															   thumbnail_size,
+															   'user')
+		else:
+			# get original
+			target_list[i][image_property] = users[i].image_url
 	return target_list
 
 def get_group_data(group_key_list, params):
@@ -148,7 +156,7 @@ def get_post_notifications(user_id, timestamp, history=None):
 
 
 #!!!!!!!!!handle put exception
-def add_to_index(group_id, group_name, group_image = None):
+def add_to_index(group_id, group_name, group_description, group_image = None):
 	group_index = search.Index(name='groups')
 
 	group_document = search.Document(
@@ -156,6 +164,7 @@ def add_to_index(group_id, group_name, group_image = None):
 	    fields=[
 		       	search.TextField(name='name', value=group_name),
 		       	search.TextField(name='suggestions', value=build_suggestions(group_name)),
+		       	search.AtomField(name='description', value=group_description),
 		       	search.AtomField(name='group_image', value=group_image),
 	       ])
 	group_index.put(group_document)
@@ -172,7 +181,7 @@ def search_index(query_string):
 
 	query_options = search.QueryOptions(
 		limit = 12,
-		returned_fields = ['name', 'group_image']
+		returned_fields = ['name', 'description', 'group_image']
 	)
 
 	query_string = process_query_string(query_string)
@@ -186,7 +195,8 @@ def search_index(query_string):
 		temp = {}
 		fields = doc.fields
 		temp["name"] = fields[0].value
-		temp["image"] = fields[1].value or DFAULT_GROUP_IMAGE
+		temp["description"] = fields[1].value
+		temp["image"] = fields[2].value
 		temp["url"] = group_url_prefix + doc.doc_id
 		results.append(temp)
 
@@ -202,7 +212,7 @@ def delete_image(image_type, user_key, group_key):
 			# delete the the blob key, serving urls from datastore
 			user.image_blob = None
 			user.image_url = None
-			user.thumbnail_url = None
+			#$$user.thumbnail_url = None
 
 			# stor serving the image and delete the orphan blob
 			images.delete_serving_url(blob_key)
@@ -234,7 +244,7 @@ def delete_image(image_type, user_key, group_key):
 			#remove cover image fields if image uploaded
 			group.cover_image_blob_key = None
 			group.cover_image_url = None
-			group.cover_image_thumbnail = None
+			#$$group.cover_image_thumbnail = None
 
 			# stop serving the image and delete the orphan blob
 			images.delete_serving_url(cover_image_blob_key)
@@ -244,7 +254,7 @@ def delete_image(image_type, user_key, group_key):
 
 			# update the search index document
 			# we don't pass the group image which set to None by default
-			add_to_index(group_key.id(), group.name)
+			add_to_index(group_key.id(), group.name, group.description)
 			return True
 
 		else:
