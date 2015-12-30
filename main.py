@@ -15,6 +15,7 @@ from notification_handler import *
 from profile_handler import *
 from navbar_handler import *
 from widget_handler import *
+from image_handler import *
 
 from models import *
 
@@ -32,9 +33,7 @@ class LandingPageHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
             return self.redirect('/feed')
         
         # only render the cerate user page if the user is not in db
-        image_upload_url = blobstore.create_upload_url('/')
-        return self.render('create_user.html', form_action = image_upload_url,
-                                               email= self.user.email())
+        return self.render('create_user.html', email = self.user.email())
 
     def post(self):
         if not self.user:
@@ -47,34 +46,44 @@ class LandingPageHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 
         # force user to enter his display name here
         display_name = self.request.get('display_name')
+
+        # Image upload is optional. Put the blob_info get in try.
         try:
-            blob = self.get_uploads()[0]
+            blob_info = self.get_uploads()[0]
         except IndexError:
-            blob = None 
+            blob_info = None 
 
-        ## redirecting to '/' will automatically re-render the form
+        # Bad request. Display name must be submitted.
         if not display_name:
-            # delete orphan blob
-            if blob:
-                blobstore.delete([blob.key()])
-            return self.redirect('/')
+            # delete orphan blob_info
+            if blob_info:
+                blobstore.delete([blob_info.key()])
+            return self.fail_ajax("Display name not entered.")
 
         try:
-            User.create_user(self.user_id, display_name, self.user.email(), blob)
+            User.create_user(self.user_id, display_name, self.user.email(), blob_info)
         
         except BadUserInputError as e:
-            # delete orphan blob
-            if blob:
-                blobstore.delete([blob.key()])
-            return self.redirect('/')
+            # delete orphan blob_info
+            if blob_info:
+                blobstore.delete([blob_info.key()])
+            return self.fail_ajax(e.value)
         
         except BadImageError as e:
-            #delete the incorrect blob uploaded
-            blobstore.delete([blob.key()])
-            return self.redirect('/')
+            #delete the incorrect blob_info uploaded
+            blobstore.delete([blob_info.key()])
+            return self.fail_ajax(e.value)
         
-        # user account created, redirect to feed page
-        return self.redirect('/feed')
+        # user account created
+        return self.render_json(True)
+
+class CreatingAccountUrlHandler(Handler):
+    # /ajax/get-creating-account-url
+    
+    def get(self):
+        # takes target_url as AJAX parameter and returns the upload URL for blobstore
+        upload_url = blobstore.create_upload_url('/')
+        return self.render_json(upload_url)
         	
 
 class DatastoreHandler(Handler):
@@ -91,14 +100,14 @@ app = webapp2.WSGIApplication([
     ('/ajax/get-navbar-data', NavbarHandler),
     ('/feed', FeedHandler),
     ('/view-profile', ViewProfileHandler),
-    ('/edit-profile', EditProfileHandler),
+    ('/ajax/edit-profile', EditProfileHandler),
     ('/ajax/get-profile-data', ProfileDataHandler),  
     ('/create-group', CreateGroupHandler),
     (r'/group/([a-z0-9-]{3,50})', GroupLandingPageHandler),
-    (r'/ajax/join-group/([a-z0-9-]{3,50})', GroupJoiningHandler),
-    (r'/ajax/admin-group/([a-z0-9-]{3,50})', GroupRequestAdminHandler),
-    (r'/ajax/leave-group/([a-z0-9-]{3,50})', GroupLeavingHandler),
-    (r'/edit-group/([a-z0-9-]{3,50})', GroupEditHandler),
+    ('/ajax/join-group', GroupJoiningHandler),
+    ('/ajax/admin-group', GroupRequestAdminHandler),
+    ('/ajax/leave-group', GroupLeavingHandler),
+    ('/ajax/edit-group', GroupEditHandler),
     ('/ajax/post-group', GroupPostHandler),
     ('/ajax/delete-post', DeletePostHandler),
     ('/ajax/edit-post', EditPostHandler),   
@@ -112,6 +121,9 @@ app = webapp2.WSGIApplication([
     ('/ajax/update-request-notifications', UpdateRequestHandler), 
     ('/ajax/complete-request', CompleteRequestHandler),
     ('/ajax/delete-image', DeleteImageHandler),
+    ('/ajax/upload-image', UploadImageHandler),
+    ('/ajax/get-image-upload-url', GetImageUploadUrlHandler),
+    ('/ajax/get-creating-account-url', CreatingAccountUrlHandler),  
     ('/ajax/widget/hot-groups', HotGroupsHandler),
     ('/datastore', DatastoreHandler)
 ], debug=True)   

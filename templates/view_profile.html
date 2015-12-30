@@ -6,134 +6,367 @@
 {% endblock %}
 
 {% block style_sheets %}
-	<link rel="stylesheet" href="../stylesheets/simple_modal_min.css">
+	<!-- <link rel="stylesheet" href="../stylesheets/simple_modal_min.css"> -->
+	<link rel="stylesheet" href="../stylesheets/view-profile.css">
 {% endblock %}
 
 {% block json_elements %}
 {% endblock %}
 
 {% block scripts %}
-<script type="text/html" id="group-template">
-	<li>
-		<p>
-			<img data-bind="attr:{src: cover_image_url, alt: name + ' group\'s cover image' }">
-			<a data-bind="attr:{href: url}"><strong data-bind="text: name"></strong></a>
-			<i data-bind="text: members_str"></i>
-		</p>
-		<p data-bind="text: private_str"></p>
-		<p data-bind="text: description"></p>
-	</li>	
-</script>
-
 <script type="text/javascript" data-main="../scripts/viewProfileMain" src="../scripts/libs/require.js">
 </script>
-
 {% endblock %}
+
 
 {% block modals %}
-<div class="simple-modal-wrapper" data-modal-id="editUserModal">
+<div class="simple-modal-wrapper form-modal" data-modal-id="editUserModal">
 	<div class="modal-content">
-
 		<p class="modal-heading">Edit your profile</p>
+	    <div class="modal-body">
+		    <form id="editForm" action="/ajax/edit-profile" method="post" data-bind="submit: submitUserEdit">
+		    	<div class="form-field material-input-wrapper material-name-field">
+					<div class="material-input-group">
+						<input type="text" name="name" data-bind=" event: {input : enableDisplayNameSave}">
+						<span class="bar"></span>
+						<label>Display Name</label>
 
-		<!-- ko if: navbarData() -->
-		    <div class="modal-body">
-			    <form id="editForm" action="{{u.form_action}}" enctype="multipart/form-data" method="POST">
-			    	<div>
-			    		<h4>Change display name</h4>
-						<label for="">Display Name</label>
-						<input type="text" name = "display_name">
-						<span data-bind="text: navbarData().displayName"></span>
-					</div>
-					<div>
-			    		<h4>Profile photo</h4>
-						<p>
-							<img data-bind="attr: {src: userImages.modal}">
-							{% if not u.default_image %}
-								<button type="button" data-bind="click: deleteUserImage">Delete Image</button>
-							{% endif %}
-							<p><input type="file" name="file" value="Select"></p>
-						</p>										
-					</div>
-					<div>
-						<input type="submit" name="submit" value="Save changes">
-						<button type="button" class="simple-modal-close">Close Modal</button>
-					</div>				
-					<div id="error"></div>
-				</form>
-		    </div><!-- END MODAL BODY -->
-		<!-- /ko -->
+						<div class="guide">
+							<span>2 to 50 characters long. Only numbers, alphabets and spaces are allowed.</span>
+						</div>
+					</div>			
+				</div>
 
+				<div class="form-controls">
+					<button type="button" class="btn-normal simple-modal-close" data-bind="click: userEditModalRefresh">cancel</button>
+					<button type="submit" class="btn-normal save-user-edit" disabled="true">save</button>
+				</div>				
+				<div id="error"></div>
+			</form>
+	    </div><!-- END MODAL BODY -->
 	</div><!-- END MODAL CONTENT -->
-
 </div><!-- END MODAL WRAPPER -->
+
+<!-- START UPLOAD IMAGE MODAL -->
+<div class="simple-modal-wrapper form-modal upload-image-modal" data-modal-id="uploadImageModal" data-animation-duration="400">
+	<div class="modal-content">
+		<p class="modal-heading">Upload Image</p>
+        <div class="modal-body">
+        	<form enctype="multipart/form-data" method="POST">
+        		<div class="guide">
+        			<span></span>
+        		</div>
+				<div class="image-selected-wrapper">
+					<div class="backdrop-icon">
+						<i class="material-icons">cloud_upload</i>
+					</div>
+					<img src="#void" class="image-selected">
+				</div>
+
+				<div class="file-input-trigger">
+					<button type="button" class="btn-normal">select image</button>
+				</div>				
+				<input type="file" name="file" value="Select">
+				<div class="form-controls">
+					<button type="button" class="btn-normal simple-modal-close">cancel</button>
+					<button type="submit" class="btn-normal upload-image" disabled="true">upload</button>
+				</div>
+			</form>
+        </div><!-- END MODAL BODY -->
+ 	</div><!-- END MODAL CONTENT -->
+</div><!-- END MODAL WRAPPER -->
+
+<!-- START CONFIRM IMAGE DELETE MODAL -->
+<div class="simple-modal-wrapper confirm-modal" data-modal-id="confirmLeadingImageDeleteModal" data-animation-duration="400">
+	<div class="modal-content">
+		<p class="modal-heading"></p>
+        <div class="modal-body">
+        	<p class="confirm-modal-message">Delete current picture?</p>
+			<div class="confirm-modal-controls">
+				<button type="button" class="btn-normal simple-modal-close">cancel</button>
+				<button type="button" class="btn-normal delete-leading-image">Delete</button>
+			</div>
+        </div><!-- END MODAL BODY -->
+
+ 		</div><!-- END MODAL CONTENT -->
+</div><!-- END MODAL WRAPPER -->
+
+<!-- START CONFIRM POST DELETE MODAL -->
+<div class="simple-modal-wrapper confirm-modal" data-modal-id="confirmPostDeleteModal" data-animation-duration="400">
+	<div class="modal-content">
+		<p class="modal-heading"></p>
+        <div class="modal-body">
+        	<p class="confirm-modal-message">Delete this post?</p>
+			<div class="confirm-modal-controls">
+				<button type="button" class="btn-normal simple-modal-close">cancel</button>
+				<button type="button" disabled="true" class="btn-normal delete-post">Delete</button>
+			</div>
+        </div><!-- END MODAL BODY -->
+
+ 		</div><!-- END MODAL CONTENT -->
+</div><!-- END MODAL WRAPPER -->
+
 {% endblock %}
 
-{% block content %}	
-<div data-bind="with: navbarData()">
-	<p><img class="user-image" data-bind="attr: {src: $root.userImages.main, alt:'your profile picture'}"></p>
-	<h2 data-bind="text: displayName"></h2>
-	<p data-bind="text: email"></p>
-</div>
+{% block user_content %}
 
-<div>
-	<button type="button" class="simple-modal-trigger" data-trigger-modal-id = "editUserModal" data-bind="click: clearModalForm">Edit Profile</button> 	
-</div>
+<div class="fixed-col card">
+	<div class="leading-image-wrapper">
+
+		<div class="leading-image">
+			<!-- ko if: navbarData() -->
+				<img class="avatar-round" data-bind="attr: {src: leadingImageURL, alt:'your profile picture'}">
+			<!-- /ko -->
+
+			<div class="leading-image-controls">			
+				<i title="Upload Image"class="material-icons image-upload-icon simple-modal-trigger" data-trigger-modal-id="uploadImageModal">photo_camera</i> 
+				<i title="Delete Image" class="material-icons image-delete-icon simple-modal-trigger" data-trigger-modal-id="confirmLeadingImageDeleteModal" data-bind="visible: imageDeleteIconStatus">delete</i>
+			</div>
+
+		</div>
+					
+	</div>
+
+	<div data-bind="with: navbarData()" id="userInfo">
+		<h3 data-bind="text: displayName"></h3>
+		<p data-bind="text: email"></p>
+	</div>
+
+	<div class="edit-user-control">
+		<button type="button" class="simple-modal-trigger btn-normal" data-trigger-modal-id = "editUserModal">Edit Profile</button> 	
+	</div>
+</div> <!-- END FIX COL -->
+
+<div class="center-col">
+	
+	<div id="mainSpinner">
+		<i class='spinner icon-spin3 animate-spin'></i>
+	</div>
+
+	<div id="centerColContentWrapper" class="card">
+
+		<div id="tabWrapper">
+			<div id="tabs" data-bind="foreach: tabNames">
+				<span data-bind="text: $data, click:$root.changeTab, attr: {'data-tab-name': $data }"></span>
+			</div>
+
+			<div id="tabBar"></div>
+		</div>
+		
+
+		<div id="tabContent">
+			<div id="groupsContent" data-bind="visible: tab.groups">
+				<div class="tab-content-header">
+		    		<h5 class="center-content-vertically">
+		    			<i class="material-icons">group</i>
+		    			<span>Groups</span>
+		    		</h5>
+		    	</div>
+		    	
+		    	<div class="tab-content-wrapper">	    				        
+			        <div class="view-profile-group-item-wrapper" data-bind="foreach: groups.allGroupsData">     
+				        <div class="view-profile-group-item">
+				        	<a data-bind = "attr:{href: url}">
+				        		<img class="avatar-rect" data-bind="attr:{src: cover_image_url}">
+				        	</a>
+							
+							<div class="view-profile-group-data"> 
+								<div>
+									<div class="view-profile-group-name">
+										<a data-bind="attr:{href: url}, text: name"></a>
+
+										<span>
+											<i title="Public group" class="material-icons" data-bind="visible: !private">public</i>
+											<i title="Private group" class="material-icons" data-bind="visible: private">vpn_lock</i>
+										</span>
+									</div>
+
+									<span class="view-profile-group-members" data-bind="text: members_str"></span>
+								</div>
+							
+								<div class="view-profile-group-tag-wrapper">
+									<span class="view-profile-group-tag" data-bind="visible:admin">admin</span>
+									<span class="view-profile-group-tag" data-bind="visible:creator">creator</span>
+								</div>
+
+							</div><!-- END VIEW PROFILE GROUP DATA -->	
+				        </div> <!-- END VIEW PROFILE GROUP ITEM -->	
+					</div>
+					
+					<div class="no-content-filler" data-bind = "visible: groups.filler">
+			        	<div class="backdrop-icon">
+			        		<i class="material-icons">person</i>
+			        	</div>
+			        	<div class="message">
+			        		<span>Forever alone? Join a group.</span>
+			        	</div>
+			        </div>
+
+		        </div>
+
+		        <div class="content-spinner">
+		    		<i class='spinner icon-spin3 animate-spin'></i>
+		    	</div>
+
+			</div>
+		
+		    <div id="postsContent" class="simple-modal-trigger" data-bind="visible: tab.posts, event: {click : catchDeletePost}" data-trigger-modal-id="confirmPostDeleteModal">
+		    	<div class="tab-content-header" data-bind="event: {click:filterPostDeleteEvents}">
+		    		<h5 class="center-content-vertically">
+		    			<i class="material-icons">description</i>
+		    			<span>Posts</span>
+		    		</h5>
+		    	</div>
+		    	
+		    	<div class="tab-content-wrapper" data-bind="event: {click:filterPostDeleteEvents}">
+		    		<div class="view-profile-post-item-wrapper" data-bind="foreach: posts.postArray">
+				    	<div class="view-profile-post-item" data-bind="attr:{'data-post-id': post_id}">
+			        		<p data-bind="text:post"></p>
+			        		<div class="view-profile-post-details">
+			        			<div>
+			        				<strong data-bind="text: group_name"></strong>
+			        				<!-- <strong data-bind="text: group_name"></strong> -->
+			        				<span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': created }"></span>
+			        			</div>
+
+			        			<button class="btn-icon delete-post-btn-icon-marker" type="button">
+			        				<i class="material-icons delete-post-btn-icon-marker">delete</i>
+			        			</button>
+
+			        		</div>
+				        </div>
+			        </div>
+					
+					<div class="tab-content-update-button" data-bind="visible: posts.more">
+						<button class="btn-normal" type="button" data-bind="click: getMorePosts, visible: posts.more, enable: posts.enableUpdate">Get more posts</button>
+					</div>
+	
+			        <div class="no-content-filler" data-bind="visible: posts.filler">
+			        	<div class="backdrop-icon">
+			        		<i class="material-icons">no_sim</i>
+			        	</div>
+			        	<div class="message">
+			        		<span>You don't have any post. Share a thought.</span>
+			        	</div>
+			        </div>		        
+		    	</div>
+
+		    	<div class="content-spinner">
+		    		<i class='spinner icon-spin3 animate-spin'></i>
+		    	</div>
+
+		    </div>
+		    
+		    <div id="notificationsContent" data-bind="visible: tab.notifications">
+		        <div class="tab-content-header">
+		    		<h5 class="center-content-vertically">
+		    			<i class="material-icons">notifications</i>
+		    			<span>Notifications</span>
+		    		</h5>
+		    	</div>
+
+		    	<div class="tab-content-wrapper">
+
+			        <div class="view-profile-notification-item-wrapper" data-bind= "foreach: notifications.ntfArray">
+						<div class="view-profile-notification-item center-content-vertically">
+							<div class="view-profile-norification-image">
+								<img data-bind="attr:{src: posterImage}" class="avatar-rect">
+							</div>
+
+							<div class="view-profile-norification-details">
+								<span data-bind = "html: notificationText"></span>
+								<div>
+									<span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': timestamp, 'data-notification': true }"></span>
+								</div>
+							</div>
+						</div><!-- END VIEW PROFILE NOTIFICATION ITEM -->
+					</div><!-- END VIEW PROFILE NOTIFICATION ITEM WRAPPER -->
+					
+					<div class="view-profile-update-notifications tab-content-update-button" data-bind="visible: !notifications.filler()">
+						<button class="btn-normal" type="button" data-bind="click: getMoreNotifications, visible: notifications.more">Get more notifications</button>
+						<span data-bind="visible: notifications.updateFiller">
+							you have no more notifications
+						</span>
+					</div>
+					
+					<div class="no-content-filler" data-bind="visible: notifications.filler">
+			        	<div class="backdrop-icon">
+			        		<i class="material-icons">notifications_off</i>
+			        	</div>
+			        	<div class="message">
+			        		<span>All up-to-date!</span>
+			        	</div>
+			        </div>
+
+				</div>
+
+				<div class="content-spinner">
+		    		<i class='spinner icon-spin3 animate-spin'></i>
+		    	</div>
+
+		    </div>
+
+		    <div id="requestsContent" data-bind="visible: tab.requests">	   
+		        <div class="tab-content-header">
+		    		<h5 class="center-content-vertically">
+		    			<i class="material-icons">email</i>
+		    			<span>Requests</span>		    			
+		    		</h5>
+		    	</div>
+
+		        <div class="tab-content-wrapper">  
+			        <div class="view-profile-request-item-wrapper" data-bind="foreach: requests.requestArray">
+						<div class="view-profile-request-item center-content-vertically">
+							<div class="view-profile-request-image">
+								<img class="avatar-rect" data-bind="attr:{src: user_image}">
+							</div>
+							
+							<div class="view-profile-request-details">
+								<div>
+									<p data-bind="html: text"></p>
+									<span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': timestamp, 'data-notification': true }"></span>
+								</div>
+
+								<div class="view-profile-request-controls">
+									<button class="btn-icon" title="accept request" type="button" data-bind = "click: $root.completeRequest"><i class="material-icons">person_add</i></button>
+									<i class="icon-spin3 animate-spin spinner"></i>
+									<i class="material-icons user-profile-request-complete-icon">check_circle</i>
+								</div>
+
+							</div><!-- END VIEW PROFILE REQUEST ITEM DETAILS -->				
+						</div> <!-- END VIEW PROFILE REQUEST ITEM  -->		
+					</div><!-- END VIEW PROFILE REQUEST ITEM WRAPPER -->
+					
+					<div class="tab-content-update-button" data-bind="visible: requests.more">
+						<button class="btn-normal" data-bind="click: getMoreRequests, enable: requests.enableUpdate, visible: requests.more">Get more requests</button>
+					</div>
+									
+					<div class="no-content-filler" ddata-bind="visible: requests.filler">
+			        	<div class="backdrop-icon">
+			        		<i class="material-icons">assignment_turned_in</i>
+			        	</div>
+			        	<div class="message">
+			        		<span>No pending requests.</span>
+			        	</div>
+			        </div>
+
+				</div>
+
+				<div class="content-spinner">
+		    		<i class='spinner icon-spin3 animate-spin'></i>
+		    	</div>
+
+			</div>
+
+		</div>
+	</div>
+</div>	
+
+{% endblock %}
 
 
-<ul data-bind="foreach: tabNames">
-	<li data-bind="text: $data, click:$root.changeTab"></li>
-</ul>
-
-<div>
-	 <!-- ko if: tab.groups() -->
-        <h3>Groups</h3>
-        <h4>Joined groups</h4>       
-        <ul data-bind="template: { name: 'group-template', foreach: groups.allGroupsData }"></ul>
-
-        <h4>Groups you are administrator of</h4>       
-        <ul data-bind="template: { name: 'group-template', foreach: groups.adminGroupsData }"></ul>
-    <!-- /ko -->
-
-    <!-- ko if: tab.posts() -->
-        <h3>Posts</h3>
-        <ul data-bind="foreach: posts.postArray">
-        	<li>
-        		<p data-bind="text:post"></p>
-        		<p>posted in <strong data-bind="text: group_name"></strong>
-        			<span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': created }"></span>
-        		</p>
-        		<p><button type="button" data-bind="click: $root.deletePost">Delete</button></p>
-        	</li>
-        </ul>
-        <button data-bind="click: getMorePosts, enable: posts.more()">Get more posts</button>
-    <!-- /ko -->
-
-    <!-- ko if: tab.notifications() -->
-        <h3>Notifications</h3>
-        <ul data-bind= "foreach: notifications.ntfArray">
-			<li>
-				<p>
-					<img data-bind="attr:{src: posterImage, alt: posterName + '\'s profile picture'}"><span data-bind = "text: notificationText"></span>
-				</p>
-				<p><span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': timestamp, 'data-notification': true }"></span></p>
-			</li>
-		</ul>
-		<button data-bind="click: getMoreNotifications, enable: notifications.more()">Get more notifications</button>
-    <!-- /ko -->
-
-    <!-- ko if: tab.requests() -->
-        <h3>Requests</h3>
-        <ul data-bind="foreach: requests.requestArray">
-			<li>
-				<p><img data-bind="attr:{src: user_image, alt: user_name + '\'s profile picture'}"><strong data-bind="text:user_name"></strong></p>
-				<p data-bind="text: text"></p>
-				<p><span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': timestamp, 'data-notification': true }"></span></p>
-				<p><button data-bind = "click: $root.completeRequest, visible:complete === false">Accept Request</button></p>
-			</li>		
-		</ul>
-		<button data-bind="click: getMoreRequests, enable: requests.more()">Get more requests</button>
-    <!-- /ko -->
-</div>
-
+{% block custom_content %}
+	<div>
+		<hot-groups></hot-groups>
+	</div>
 {% endblock %}

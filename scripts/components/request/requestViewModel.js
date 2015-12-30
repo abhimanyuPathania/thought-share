@@ -7,9 +7,14 @@ define(['knockout',
 
 function(ko, $, helper, constants, htmlString) {
 
-function RequestViewModel() {
+function RequestViewModel(params) {
 	
 var self = this;
+
+var userProfileViewModelRef = null; // reference to userProfileViewModel
+if (params.parentRef && params.parentRef.userProfileViewModel){
+	userProfileViewModelRef = params.parentRef;
+}
 
 var REQUEST_NTF_KEY = "ts-req-ntf-timestamp"; 
 var requestWrapper = $("#requests .dropdown-wrapper");
@@ -19,6 +24,19 @@ self.fetchTimestamp = null;
 
 self.requestNotifications = ko.observableArray();
 self.unreadRequestNotifications = ko.observable();
+if (userProfileViewModelRef) {
+	// set the reference to requestNotifications observable to parent userProfileViewModel's
+	// requestComponentObArray property.
+	userProfileViewModelRef.requestComponentObsArray = self.requestNotifications;
+
+	// get the reference to userProfileViewModel's observable array holding requests
+	self.userProfileRequests = userProfileViewModelRef.requests.requestArray;
+
+	/*
+		userProfileViewModel has refernce to request components requests observable array and
+		RequestViewModel has reference to userProfileViewModel's requests observable array.
+	*/
+}
 
 self.stopPolling = false;
 
@@ -30,45 +48,139 @@ self.showRequests = function() {
 }
 
 
-self.completeRequest = function(req) {
+self.completeRequest = function(req, event) {
 
-	// req is the request request object
+	var requestAcceptButton = $(event.target);
+	var requestControlDiv = requestAcceptButton.closest('.request-control');
+	var spinnerHTML = "<i class='spinner icon-spin3 animate-spin'></i>";
+	var checkIconHTML = "<i class='material-icons request-checked-icon'>check_circle</i>";
+
+	// req is the request object
 	$.ajax({
 		url:"/ajax/complete-request",
 		type: "POST",
 		dataType: "json",
 		data: {"request_hash": req.request_hash},
 
+		beforeSend: function(){	
+
+			//fade away add button
+			requestAcceptButton.velocity({
+				opacity: 0
+			}, { 
+				duration: 200,
+				display: "none",
+
+				complete: function(){
+					//after fading away the add button, replace with spinner
+					requestControlDiv.append(spinnerHTML);
+					
+					//spinner is also faded-in, its opacity is 0 via CSS
+					$(".spinner", requestControlDiv).velocity({ opacity: 1 }, { 
+						duration: 100
+					});
+				},
+			});// end velocity call
+			
+		},
+
 		success: function(resp) {
-			console.log("completeRequest", "success", resp);
+
 			// on success we just update our view and remove that notification
 			if (!resp) {
 				return;
 			}
 
-			var temp = self.requestNotifications();
-			for(var i=0, l=temp.length; i<l; i++){
-				if (temp[i].request_hash === req.request_hash){
-					temp[i].text = ("You have accepted " + temp[i].user_name +
-									"'s request");
-					temp[i].complete = true; 
-				}
-			}
+			var reqIndex = self.requestNotifications.indexOf(req);
+			req.complete = true;
+			req.text = helper.getRequestCompleteText(req);
 
-			console.log(temp);
-			//update View
+			setTimeout(function(){
+			/*
+				Using setTimeout here since we use JS to inject the spinner markup.
+				The selector '$(".spinner", requestControlDiv)', targeting it returns null
+				without the setTimeout delay.
+			*/
+			//fade out spinner
+				$(".spinner", requestControlDiv).velocity({opacity: 0},{
+					duration: 200,
+					display: "none",
 
-			//valueHasMutated was not working
-			self.requestNotifications(null);
-			self.requestNotifications(temp);
+					complete: function(){
+						// add the checked icon
+						/*
+							Checked icon is added via ko's visible binding to complete property
+							of the request object. It's visible after the second splice call..
+						*/
+
+						/*fade in animation of checked icon has been offset to CSS
+						  since removing and req object from obsArray also removes
+						  our refernce to the requestControlDiv*/
+						
+						// removes the req from the array
+						self.requestNotifications.splice(reqIndex , 1);
+						// add it back so to render with new parameters
+						self.requestNotifications.splice(reqIndex , 0, req);
+
+
+						// If accepted while viewing requests on profile page, 
+						// remove it from the userProfileViewModel and UI
+						removeRequestFromUserProfile(req);
+
+					}, 
+				});// end velocity
+
+			}, 1500);// end setTimeout
 		},
 
 		error: function() {
 			console.log("completeRequest", "ERROR");
+
+			
+			// setTimeout is used due to same reason as in complete function
+			//fade away spinner
+			setTimeout(function(){
+				$(".spinner", requestControlDiv).velocity({
+					opacity: 0
+				}, { 
+					duration: 200,
+					display: "none",
+
+					complete: function(){
+						//after fading spinner re-insert the button
+						requestControlDiv.append(requestAcceptButton);
+						
+						//set its opacity to 0 and fade it in
+						requestAcceptButton.css("opacity", 0);
+						requestAcceptButton.velocity({ opacity: 1 }, { 
+							duration: 100,
+							display:"auto"
+						});
+					},
+				});// end velocity call
+			}, 1500);// end setTimeout
 		}
 
 	});
 }; // end complete request
+
+function removeRequestFromUserProfile(req) {
+	if (self.userProfileRequests && self.userProfileRequests().length) {
+		var profileArr = self.userProfileRequests();
+
+		// loop over profile page's requests
+		for(var i=0, l=profileArr.length; i<l; i++){
+
+			// find the request that has been accepted
+			if (profileArr[i].request_hash === req.request_hash){
+				
+				//calling ko's splice will cause UI refresh
+				self.userProfileRequests.splice(i,1);
+				break;
+			}
+		} 
+	}
+}
 
 //define polling function
 function doRequestNotificationsPolling() {
@@ -153,7 +265,6 @@ function fetchRequestUpdates() {
 			//loop in reverse and add to front of existing array
 			for(var i=data.length-1; i>=0; i--) {
 				data[i]["text"] = helper.getRequestText(data[i]);
-				data[i]["timestampText"] = helper.getTimestampText(data[i].timestamp, true);
 				data[i]["user_image"] = helper.getImageURL(data[i]["user_image"],
 														   constants.REQUEST_IMAGE,
 														   "user");
@@ -167,11 +278,7 @@ function fetchRequestUpdates() {
 			localStorage.setItem(REQUEST_NTF_KEY, currentRequests[0].timestamp);
 
 			self.unreadRequestNotifications(0);
-
-			//here too valueHasMutated was not working
-			self.requestNotifications(null);
-			self.requestNotifications(currentRequests);
-
+			self.requestNotifications.valueHasMutated();
 		},
 
 		error: function() {
@@ -220,7 +327,6 @@ function initialFetch() {
 			//we received so requests
 			for (var i=0, l=requests.length; i<l; i++) {
 				requests[i]["text"] = helper.getRequestText(requests[i]);
-				requests[i]["timestampText"] = helper.getTimestampText(requests[i].timestamp, true);
 				requests[i]["user_image"] = helper.getImageURL(requests[i]["user_image"],
 														   	   constants.REQUEST_IMAGE,
 														       "user");

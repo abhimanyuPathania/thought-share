@@ -5,6 +5,11 @@ return {
     
 getTimestampText: function (t, ntf){
 	
+	if (!t) {
+		// undefined is passed when ko is rendering UI
+		return;
+	}
+	
 	//sent ntf as true to get "ago" appended textTimstamp
 	var SECONDS_IN_DAY = 24*60*60;
 	var miniMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -62,29 +67,52 @@ getTimestampText: function (t, ntf){
 
 getPostNotificationText: function (n){
 	
-	//can also try to inject html directly
+	var groupUrl = "/group/" + n.group_id;
+	var posterNameHTML = "<span class='font-weight-bold'>" + n.poster_name + "</span>";
+	var groupNameHTML = "<a class='font-weight-bold' href='" + groupUrl + "'>" + n.group_name + "</a>";
+	var context;
+
 	if (n["type"] === "post"){
-		return n.poster_name + " posted in " + n.group_name;
+		context = " posted in ";
 	}
 	if (n["type"] === "join"){
-		return n.poster_name + " has accepted your request to join "+ n.group_name;
+		context = " has accepted your request to join ";
 	}
 	if (n["type"] === "admin"){
-		return n.poster_name + " has accepted your request for adminship of "+ n.group_name;
+		context = " has accepted your request for adminship of ";
 	}
+
+	return (posterNameHTML + context + groupNameHTML + ".");
 },
 
 getRequestText : function(req){
-	var requestText = "";
+	var context;
+	var usernameHTML = "<span class='font-weight-bold'>" + req.user_name + "</span>";
+	var groupNameHTML = "<span class='font-weight-bold'>" + req.group_name + "</span>";
 
 	if (req.request_type === "join") {
-		requestText = req.user_name + " is wants to join " + req.group_name;
+		context = " wants to join ";
 	}
 	if (req.request_type === "admin") {
-		requestText = req.user_name + " is requsting adminship of " + req.group_name;
+		context = " is requesting adminship of ";
 	}
 
-	return requestText;
+	return (usernameHTML + context + groupNameHTML + ".");
+},
+
+getRequestCompleteText: function(req){
+	var context;
+	var usernameHTML = "<span class='font-weight-bold'>" + req.user_name + "</span>";
+	var groupNameHTML = "<span class='font-weight-bold'>" + req.group_name + "</span>";
+
+	if (req.request_type === "join") {
+		context = " has joined ";
+	}
+	if (req.request_type === "admin") {
+		context = " is an admin of ";
+	}
+
+	return ( "Request accepted. " + usernameHTML + context + groupNameHTML + ".");
 },
 
 getImageURL: function(url, size, type){
@@ -132,7 +160,12 @@ checkImageFile: function(file){
 
 	if (file[0].size > constants.MAX_IMAGE_SIZE_BYTES) {
 		result.ok = false;
-		result.errorStr = "Image file is bigger than 10MB";
+		result.errorStr = "Image size cannot be more than 10MB";
+	}
+
+	if (file.length > 1) {
+		result.ok = false;
+		result.errorStr = "Please upload one image";
 	}
 
 	return result;
@@ -140,13 +173,10 @@ checkImageFile: function(file){
 
 getCharLeft: function (desc) {
 	var inputLength = desc.length;
-	var charLeft = constants.GROUP_DESCRIPTION_CHAR_LIMIT - inputLength;
+	var charLimit = constants.GROUP_DESCRIPTION_CHAR_LIMIT
 
-	if (charLeft >= 0) {
-		return charLeft;
-	} else {
-		return  charLeft +  "(limit exceeded)";
-	}
+
+	return inputLength ? (inputLength + " / " + charLimit) : charLimit; 
 },
 
 toggleDropdown : function(element) {
@@ -172,7 +202,7 @@ showDropdown : function (element) {
 		dropdownWrappers.removeClass("show");
 		element.addClass("show");
 	}
-}
+},
 
 }; //end returned module
 

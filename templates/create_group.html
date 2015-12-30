@@ -6,6 +6,7 @@
 {% endblock %}
 
 {% block style_sheets %}
+	<link rel="stylesheet" href="../stylesheets/create-group.css">
 {% endblock %}
 
 {% block json_elements %}
@@ -15,32 +16,98 @@
 	<script data-main="../scripts/createGroupMain" src="../scripts/libs/require.js"></script>
 {% endblock %}
 
-{% block content %}
-	<h2>create new group</h2>
-	<form id= "createGroupForm" method="POST" action="{{form_action}}" enctype="multipart/form-data">
-		<div>
-			<label for="">Group name</label>
-			<input type="text" name="name" id="" value="{{name}}">
-			<span id="nameAvailable" data-name-available=""></span>
-		</div>
-		<div>
-			<label for="">Group description</label>
-			<textarea name="description" id="" cols="30" rows="10">{{description}}</textarea>
-			<span id="descCount">{{description_limit}}</span>
-		</div>
-		<div>
-			<label for="">Cover image</label>
-			<input type="file" name="file" value="Select">
-		</div>
-		<div>
-			<label for="">Make private(leave unchecked for public groups):</label>
-			<input type="checkbox" name="private">
-		</div>
-		<div>
-			<input type="submit" value="Create!">
-		</div>
-		<div id="error">
-			{{error}}
-		</div>
-	</form>
+{% block user_content %}
+	<div id="formWrapper" class="card">
+		<h4>Create A New Group</h4>
+		<form id= "createGroupForm" method="POST" action="{{form_action}}" enctype="multipart/form-data">
+			<div class="padding-wrapper">
+				
+			
+				<div class="form-field material-input-wrapper material-name-field">
+					
+					<div class="material-input-group">
+						<input type="text" name="name" value="{{name}}">
+						<span class="bar"></span>
+						<label>Group Name</label>
+
+						<div class="guide">
+							<span>Only numbers, alphabets and spaces are allowed. Group name cannot be changed later.</span>
+						</div>
+						
+						<div id="nameAvailable" data-name-available="">
+							<div class="center-content-vertically">
+								<i class="material-icons">check_circle</i>
+								<span></span>
+							</div>
+						</div>
+					</div>			
+				</div>
+
+				<div class="form-field material-input-wrapper material-description-field">
+					<div class="material-input-group">
+						<textarea class="material-textarea" rows="1" name="description">{{description}}</textarea>
+						<span class="bar"></span>
+						<label>Group description</label>
+
+						<div class="guide">
+							<span>Description is required. It can be changed later.</span>
+							<span class="description-counter">{{description_limit}}</span>
+						</div>
+					</div>								
+				</div>
+				
+				<div class="form-field material-image-upload" id="imageField">
+				<!-- this is the imageWrapper div as used as hook in enableForms.js-->
+
+					<div class="flex-wrapper">
+						<div class="center-content-vertically">
+							<label>Group image</label>
+							<button type="button" title="select group image" class="file-input-trigger btn-icon"><i class="material-icons">photo_camera</i></button>
+							<button type="button" title="remove selected image" class="btn-icon file-input-clear"><i class="material-icons">delete</i></button>
+						</div>
+
+						<div class="image-preview">
+							<img class="avatar-rect" src="../images/defaults/group40.png">
+							<span>default</span>
+						</div>
+					</div>
+									
+					<div class="guide">
+						<span></span>	
+					</div>
+
+					<input type="file" name="file" value="Select">
+				</div>
+
+
+				<div class="form-field" id="makePrivate">
+					<div class="center-content-vertically">
+						<label>Make private</label>
+						<div class="checkbox-icons">
+							<span class="unchecked"><i class="material-icons">check_box_outline_blank</i></span>
+							<span class="checked"><i class="material-icons">check_box</i></span>	
+						</div>
+					</div>
+
+					<div class="status-icons">
+					 	<span title="public group" class="public"><i class="material-icons">public</i></span>			
+						<span title="private group" class="private"><i class="material-icons ">vpn_lock</i></span>
+					</div>				
+
+					<input type="checkbox" name="private">
+				</div>
+			</div> <!-- END PADDING WRAPPER -->
+
+			<div class="form-control-wrapper">
+				<div id="error">
+					<span>{{error}}</span>
+				</div>
+				
+				<div class="form-field" id="submit">
+					<button type="submit" class="btn-normal">Create Group</button>
+				</div>
+			</div>
+		</form>
+	</div>  <!-- END FORM WRAPPER -->
+	
 {% endblock %}

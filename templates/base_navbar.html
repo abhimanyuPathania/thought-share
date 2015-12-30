@@ -4,7 +4,12 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, intial-scale=1">
 		{% block title %}{% endblock %}
-
+		
+		<!-- ADD THE ROBOTO FONT STYLESHEET HERE -->
+		<!-- <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"> -->
+      	<link href="../stylesheets/icons.css" rel="stylesheet">
+      	<link rel="stylesheet" href="../stylesheets/spinners.css">
+      	<link rel="stylesheet" href="../stylesheets/base.css">
 		<link rel="stylesheet" href="../stylesheets/base-navbar.css">
 		{% block style_sheets %}{% endblock %}
 	</head>
@@ -17,12 +22,28 @@
 		
 		{% block modals %}
 		{% endblock %}
-
+		
+		<!-- 
+			The navbar component gets parentRef parameter from the ViewModel used in main.js
+			file(feedPageViewModel, userProfileViewModel), and passes it to the ViewModel of
+			navbar component.
+			The navbar component passes it Post component's ViewModel (feedPage) and Request component (viewProfile page). These VMs respectively detect wether it's the required
+			page and discard the parentRef if not. 
+		 -->
 		<navbar-modular params="parentRef: parentRef"></navbar-modular>
 		
-		<div class="page-content center-container">
-			{% block content %}
-			{% endblock %}
+		<div class="page-content center-container clearfix">
+			
+			<div class="user-content">
+				{% block user_content %}
+				{% endblock %}
+			</div>
+
+			<div class="custom-content">
+				{% block custom_content %}
+				{% endblock %}
+			</div>
+			
 		</div>		
 		
 	</body>

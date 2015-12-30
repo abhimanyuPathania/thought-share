@@ -1,0 +1,595 @@
+*{
+	padding: 0;
+	margin: 0;
+}
+
+*, *:before, *:after {
+  -webkit-box-sizing: border-box; 
+  	 -moz-box-sizing: border-box; 
+  		  box-sizing: border-box;
+}
+
+html {
+    -ms-text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+}
+
+:focus {
+    outline: 0;
+}
+
+body{
+	font-family: 'Roboto', sans-serif;
+	font-weight: 400;
+	font-size: 14px;
+	/* this grey is 80% black */
+	color: hsl(0, 0%, 20%);
+
+	background-color: #F1F1F1;
+
+	-moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+	
+	/* equal to navbar's height */
+    padding-top: 50px;
+}
+
+h2,h3,h4,h5,h6{
+	text-transform: capitalize;
+}
+
+h2{
+	/* display 1 in GMD*/
+	font-size: 34px;
+	color: hsl(0, 0%, 46%);
+	font-weight: 500;
+}
+
+h3{
+	font-size: 28px;
+	color: hsl(0, 0%, 46%);
+	font-weight: 400;
+}
+
+h4{
+	font-size: 24px;
+	font-weight: 400;
+}
+
+h5{
+	font-size: 20px;
+	font-weight: 500;
+}
+
+h6{
+	/*sub heading*/
+	font-size: 18px;
+	font-weight: 400;
+}
+
+strong{
+	font-weight: 500;
+}
+
+/* Deal with long strings with no white spaces */
+p,span,a,li,strong,
+h1,h2,h3,h4 {
+
+	/* non standard webkit */
+	-webkit-word-break: break-word;
+	-webkit-word-wrap: break-word;
+
+	word-break: break-word;
+	word-wrap: break-word;
+
+	/* changed name according to CSS3 spec */
+	overflow-wrap: break-word;
+
+}
+
+a{
+	text-decoration: none;
+	color: inherit;
+	outline: none;
+}
+
+
+button {
+    overflow: visible;
+    font: inherit;
+    -webkit-font-smoothing: inherit;
+    letter-spacing: inherit; 
+    cursor: pointer;
+    color: inherit;
+	
+	min-width: 76px;
+    height: 30px;
+
+    font-weight: 500;
+    font-size: 14px;
+    text-transform: uppercase;
+	
+	border: none;
+	border-radius: 2px;
+
+	transition-timing-function: ease;
+	transition-duration: 0.3s;
+}
+
+/* Normal button - flat and white */
+button.btn-normal{
+	background-color: #FFF;
+	transition-property: background-color, color;
+}
+
+button:disabled.btn-normal{
+	color: hsl(0, 0%, 80%);
+}
+
+button[disabled]:hover.btn-normal,
+button[disabled]:focus.btn-normal,
+button[disabled]:active.btn-normal{
+	background-color: inherit;
+	box-shadow: none;
+}
+
+button:hover.btn-normal,
+button:focus.btn-normal{
+	background-color: hsl(0,0%,88%);
+}
+
+
+button:active.btn-normal{
+	/* to avoid the transition applied on background-color */
+
+	/* keep the backgroud color same as hovered state */
+	background-color: hsl(0,0%,88%);
+
+	/* use box shadow to put darker backgroud */
+	box-shadow: inset 0 0 999px hsl(0, 0%, 76%);
+
+	border: 0px;
+}
+
+/* Raised button */
+
+button.raised{
+	box-shadow: 1px 2px 2px 1px rgba(0, 0, 0, 0.3);
+}
+
+button:disabled.raised{
+	box-shadow: none;
+}
+
+button:focus.raised,
+button:hover.raised{
+	background-color: inherit;
+}
+
+button:active.raised{
+	background-color: inherit;
+	box-shadow: 1px 1px 2px 0px rgba(0, 0, 0, 0.4);
+}
+
+/* Icon button */
+
+button.btn-icon{	
+	min-width: auto;
+	height: auto;
+	
+	padding: 6px 6px;
+	border-radius: 50%;
+	
+	background-color: inherit;
+	transition-property: background-color;
+}
+
+button.btn-icon .material-icons{
+	font-size: 24px;
+	display: block;
+}
+
+button:disabled.btn-icon{
+	color: hsl(0, 0%, 80%);
+}
+
+button[disabled]:hover.btn-icon,
+button[disabled]:focus.btn-icon,
+button[disabled]:active.btn-icon{
+	background-color: inherit;
+	box-shadow: none;
+}
+
+button:hover.btn-icon{
+	background-color: hsl(0,0%,88%);
+}
+
+button:focus.btn-icon{
+	background-color: hsl(0,0%,88%);
+}
+
+
+button:active.btn-icon{
+	/* to avoid the transition applied on background-color */
+
+	/* keep the backgroud color same as hovered state */
+	background-color: hsl(0,0%,88%);
+
+	/* use box shadow to put darker backgroud */
+	box-shadow: inset 0 0 999px hsl(0, 0%, 76%);
+}
+
+
+
+
+
+
+input[type=text]{
+	border: none;
+	border-bottom: 1px solid;
+	font-family: inherit;
+	font-size: inherit;
+	color:inherit;
+	font-weight: inherit;
+}
+
+::-webkit-input-placeholder {
+   color: hsl(0, 0%, 46%);
+}
+
+:-moz-placeholder { /* Firefox 18- */
+   color: hsl(0, 0%, 46%); 
+}
+
+::-moz-placeholder {  /* Firefox 19+ */
+   color: hsl(0, 0%, 46%); 
+}
+
+:-ms-input-placeholder {  
+  color: hsl(0, 0%, 46%);  
+}
+
+textarea{
+	font-family: inherit;
+	font-size: inherit;
+	color:inherit;
+	font-weight: inherit;
+}
+
+::-moz-focus-inner {
+    padding: 0;
+    border: 0;
+}
+
+img{
+	max-width: 100%;
+}
+
+img.avatar-round{
+	border-radius: 50%;
+}
+
+img.avatar-rect{
+	border-radius: 2px;
+}
+
+.material-icons{
+	-webkit-user-select: none;  /* Chrome all / Safari all */
+    -moz-user-select: none;     /* Firefox all */
+    -ms-user-select: none;      /* IE 10+ */
+	user-select: none;          /* Likely future */
+	
+	word-wrap: normal !important;
+	word-break: normal !important;
+}
+
+.center-container{
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+/* this forces modals over top of navbar */
+.simple-modal-wrapper{
+	z-index: 9999;
+}
+
+/* ===== common usage classes ===== */
+
+.clearfix:after{
+	content: " ";
+	font-size: 0;
+	height: 0;
+	display: block;
+	visibility: hidden;
+	clear:both;
+}
+
+.center-content-vertically{
+	display: -webkit-flex;
+	display: flex;
+
+	-webkit-align-items: center; 
+  	align-items:         center;
+}
+
+.center-content-vertically > img{
+	-webkit-flex: 0 0 auto;
+	flex: 0 0 auto; /* grow, shrink, basis */
+}
+
+.card{
+	background-color: #FFF;
+	box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.15);
+}
+
+.font-weight-bold{
+	font-weight: 500;
+}
+
+.link-text-shadow{
+	transition: text-shadow 0.22s ease;
+}
+
+.link-text-shadow:hover{
+	text-shadow: 0px 0px 4px hsla(0, 0%, 20%, 1)
+}
+
+/* ====== Animations ====== */
+
+@-webkit-keyframes fadeIn {
+    from { opacity: 0; }
+      to { opacity: 1; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+      to { opacity: 1; }
+}
+
+/* ====== MATERIAL FORM FIELDS STYLES ====== */
+
+.material-input-group{
+	position: relative;
+	font-size: 16px;
+	width: 100%;
+}
+
+textarea.material-textarea{
+	border: none;
+	border-bottom: 1px solid;
+	resize: none;
+}
+
+.material-input-group input,
+.material-input-group textarea{
+	display:block;
+	width: 100%;
+	padding: 8px;
+	padding-left: 4px;
+	border-bottom: 1px solid hsl(0,0%,46%);
+}
+
+
+/* LABELS */
+.material-input-group label{
+  color: hsl(0, 0%, 70%); 
+  position:absolute;
+  pointer-events:none;
+  left:4px;
+  top: 8px;
+  transition:0.22s ease all; 
+}
+
+/* active state */ 
+.material-input-group input:focus ~ label,
+.material-input-group textarea:focus ~ label,
+.material-input-group input.has-value ~ label,
+.material-input-group textarea.has-value ~ label{
+  top:-12px;
+  color: hsl(0,0%, 46%);
+  font-size:12px;
+}
+
+
+/* BOTTOM BARS  */
+.material-input-group .bar { 
+	position:relative;
+	display:block;
+	width: 100%;
+}
+
+.material-input-group .bar:before,
+.material-input-group .bar:after {
+  content:'';
+  height:2px; 
+  width:0;
+  bottom:1px; 
+  position:absolute;
+  background-color: hsl(0, 0%, 20%); 
+  transition:0.22s ease all; 
+}
+
+.material-input-group .bar:before {
+  left:50%;
+}
+.material-input-group .bar:after {
+  right:50%; 
+}
+
+/* active state */
+.material-input-group input:focus ~ .bar:before, 
+.material-input-group input:focus ~ .bar:after,
+.material-input-group textarea:focus ~ .bar:before, 
+.material-input-group textarea:focus ~ .bar:after{
+  width:50%;
+}
+
+/* ERROR STYLES FOR TEXTAREA AND INPUT */
+/* .error class is applied on the .material-input-wrapper and not material-input-group */
+.material-input-wrapper.error input,
+.material-input-wrapper.error textarea{
+	border-bottom-color: #e74c3c;
+}
+
+.material-input-wrapper.error input:focus ~ label,
+.material-input-wrapper.error textarea:focus ~ label,
+.material-input-wrapper.error input.has-value ~ label,
+.material-input-wrapper.error textarea.has-value ~ label{
+  color: #e74c3c;
+}
+
+
+.material-input-wrapper.error .bar:before,
+.material-input-wrapper.error .bar:after {
+  background-color: #e74c3c; 
+}
+
+/* ===== GUIDES ===== */
+.material-input-wrapper .guide,
+.material-image-upload .guide,
+.upload-image-modal .guide {
+	margin-top: 4px;
+	width: 100%;
+
+	opacity: 0;
+}
+
+.material-input-wrapper .guide span,
+.material-image-upload .guide span,
+.upload-image-modal .guide span {
+	font-size: 12px;
+	color: hsl(0,0%,46%);
+	background-color: #F1F1F1;
+	border-radius: 2px;
+	padding: 4px 4px;
+	text-align: left;
+}
+
+
+/* ===== NAME FIELD ===== */
+
+.material-name-field .guide span{
+	display: block;
+	padding: 2px 6px;
+}
+
+/* ===== DESCRIPTION FIELD ===== */
+
+.material-description-field .guide{
+	display: flex;
+	justify-content: space-between;
+}
+
+.material-description-field.error .description-counter{
+	color: #e74c3c;
+}
+
+/* ===== IMAGE UPLOAD FIELD ===== */
+
+.material-image-upload .flex-wrapper{
+	display: flex;
+	justify-content: space-between;
+}
+
+.material-image-upload input[type="file"] {
+	display: none;
+}
+
+.material-image-upload label{
+	font-size: 16px;
+	color: hsl(0, 0%, 70%);
+	
+	/* match the name, description labels */
+	padding-left: 4px;
+}
+
+.material-image-upload .file-input-clear {
+	/* clear input button */
+	margin-left: 5px;
+	opacity: 0;
+}
+
+
+.material-image-upload .guide span{
+	display: block;
+	text-align: center;
+}
+
+.material-image-upload .image-preview{
+	text-align: right;
+}
+
+
+.material-image-upload .image-preview span{
+	display: block;
+	color: hsl(0,0%,46%);
+	font-size: 12px;
+	text-align: right;
+}
+
+.material-image-upload.image-selected label {
+	color: hsl(0,0%,46%);
+	transition: color 0.3s ease;
+}
+
+/* ===== Leading image wrapper classes ===== */
+/* as used on groupLandingPage */
+
+.leading-image-wrapper{
+	margin-right: 24px;
+}
+
+.leading-image-wrapper .leading-image {
+	position: relative;
+}
+
+.leading-image img{
+	width: 200px;
+	height: 200px;
+	
+	object-fit: cover;
+	
+	border-radius: 4px;
+	display: block;
+	cursor: pointer;
+
+	transition: opacity 0.2s ease;
+}
+
+
+.leading-image .leading-image-controls {
+	position: absolute;
+	bottom: 0px;
+	width: 100%;
+	height: 50px;
+
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+
+	padding:0px 16px;
+	padding-bottom: 12px;
+	background-color: rgba(0,0,0, 0.5);
+
+	border-bottom-left-radius: 4px;
+	border-bottom-right-radius: 4px;
+
+	transform: scale(0);
+	transform-origin: bottom center;
+	transition: transform 0.25s ease-out; 
+}
+
+
+.leading-image:hover .leading-image-controls{
+	transform: scale(1);
+}
+
+.leading-image .leading-image-controls .material-icons {
+	color: #FFF;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.leading-image .leading-image-controls .material-icons:hover {
+	font-size: 32px;	
+}

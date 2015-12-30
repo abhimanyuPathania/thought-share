@@ -1,189 +1,180 @@
-*{
-	padding: 0;
-	margin: 0;
+
+
+
+/* ===== GENERAL NO-POST FILLER MESSAGE CLASSES ===== */
+
+/* Filler message styles */
+.no-content-filler {
+	background-color: hsl(0,0%,98%);
+	padding: 24px 0px;
 }
 
-*, *:before, *:after {
-  -webkit-box-sizing: border-box; 
-  	 -moz-box-sizing: border-box; 
-  		  box-sizing: border-box;
+
+.no-content-filler .material-icons {
+	font-size: 128px;
+	color: hsl(0,0%,95%);
 }
 
-html {
-    -ms-text-size-adjust: 100%;
-    -webkit-text-size-adjust: 100%;
+.no-content-filler .backdrop-icon{
+	text-align: center;
+	margin-bottom: 12px;
 }
 
-body{
-	font-family: 'Open Sans', 'Helvetica Neue', Georgia, Arial, sans-serif;
+.no-content-filler .message{
+	font-size: 24px;
 	font-weight: 300;
-	font-size: 16px;
-	color: #444;
-
-	-moz-osx-font-smoothing: grayscale;
-    -webkit-font-smoothing: antialiased;
-
-    padding-top: 50px;
+	color: hsl(0,0%,70%);
+	text-align: center;
 }
 
-h1{
-	font-size: 2em;
-	font-weight: 400;
+	
+
+/* ======================= NAVBAR ======================= */
+
+.page-content{
+	/* 15px separation of page content wrapper from navbar */
+	margin-top: 15px; 
 }
-
-h2,h3,h4{
-	font-weight: 300;
-}
-
-h2{ font-size: 1.5em; }
-h3{ font-size: 1.25em;}
-h3{ font-size: 1.15em;}
-
-strong{
-	font-weight: 600;
-}
-
-/* Deal with long strings with no white spaces */
-p,li,strong,
-h1,h2,h3,h4 {
-
-	/* non standard webkit */
-	-webkit-word-break: break-word;
-	-webkit-word-wrap: break-word;
-
-	word-break: break-word;
-	word-wrap: break-word;
-
-	/* changed name according to CSS3 spec */
-	overflow-wrap: break-word;
-
-}
-
-
-button {
-    overflow: visible;
-    border: 0;
-    font: inherit;
-    -webkit-font-smoothing: inherit;
-    letter-spacing: inherit;
-    /* background: none; */
-    cursor: pointer;
-}
-
-button:disabled{
-	color: red;
-}
-
-input[type=text]{
-	border: none;
-	font-family: inherit;
-	font-size: inherit;
-	color:inherit;
-	font-weight: inherit;
-}
-
-textarea{
-	font-family: inherit;
-	font-size: inherit;
-	color:inherit;
-	font-weight: inherit;
-}
-
-::-moz-focus-inner {
-    padding: 0;
-    border: 0;
-}
-
-img{
-	max-width: 100%;
-}
-
-.center-container{
-	max-width: 1200px;
-	margin: 0 auto;
-}
-
-/* this forces modals over top of navbar */
-.simple-modal-wrapper{
-	z-index: 9999;
-}
-
-/* NAVBAR */
 
 .navbar-wrapper{
 	width:100%;
 	position: fixed;
 	top:0;
 	
-	/* navbar must on top of everythin */
-	z-index: 1;
-
-	background-color: #ddd;
+	/* navbar must on top of everything */
+	/* newFeed span z-index: 1 */
+	z-index: 10;
+	
+	background-color: #FFF;
+	box-shadow: 0px 2px 8px 0px rgba(0, 0, 0, 0.2);
 }
 
 .navbar-content{
 	/* flex container */
-	display: flex;
-	padding: 10px 0px;
+	
+	-webkit-justify-content: space-between;
+	justify-content: space-between;
+	padding: 8px 0px;
 }
+
+.navbar-left{
+	-webkit-flex: 0 1 60%;
+	flex: 0 1 60%;
+}
+
 
 .navbar-item{
 	/* flex items */
 	position: relative;
-	margin-right: 20px;
+	margin-right: 24px;
+}
+
+.navbar-item#search{
+	margin-right: 12px;
 }
 
 .navbar-item:last-child{
-	 margin-right: 0; 
+	margin-right: 0; 
 }
 
 
 .dropdown-wrapper{
 	visibility: hidden;
 	position: absolute;
-	right:0;
-	top: 100%;
+
+	/* 8px of notch + 8px to adjust notch's right:8px css */
+	right: calc(50% - 16px);
+
+	/*for the sliding down animation effect*/
+	top: calc(100% - 5px);
+
 	/* max-height:100px;  */
-	width: 400px;
+	width: 360px;
 	opacity: 0;
-	background-color: #bbb;
 
 	transition: all 0.22s ease;
-	/* overflow: auto; */
+	/* overflow: auto; */ /*this causes notch to dissapear?*/
+	
+	background-color: #FFF;
+	border: 1px solid hsl(0, 0%, 80%);
+	box-shadow: 0px 2px 6px 0px rgba(0, 0, 0, 0.25);
+	/*border-top: 0;*/
 }
 
 .dropdown-wrapper.show{
 	visibility: visible;
-	top: calc(100% + 10px);
+	/* 8px notch height */
+	top: calc(100% + 8px); 
   	opacity: 1;
 }
 
+
 .dropdown-items-heading{
-	border-bottom: 1px solid black;
-	padding: 5px;
+	/* fix the drop show which dissapears on applying bg to items-list */
+	/* positioned elements are rendered on top of static */
+	position: relative;
+
+	padding: 12px 0px 6px;
+	box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-items-heading p {
+	text-align: center;
+	/* title */
+	font-size: 16px;
 } 
 
 .dropdown-items-footer{
-
+	box-shadow: 0px -1px 2px 0px rgba(0, 0, 0, 0.15);	
 }
 
+.dropdown-items-footer a{
+	display: block;
+	font-size: 16px;
+	padding: 6px 0px 12px;
+	text-align: center;
+}
+
+/* .dropdown-items-footer a:hover{
+	text-shadow: 0px 0px 4px hsla(0, 0%, 20%, 1)
+} */
 .dropdown-items-list{
-	max-height: 100px;
-	overflow: auto;
+	max-height: 480px; 
+	overflow-y: auto;
+	overflow-x: hidden;
+	background-color: #F1F1F1;
 }
 
 .dropdown-item{
-	width: 100%;
+	/* flex container */
+
+	display: -webkit-flex;
 	display: flex;
-	align-items: center;
-	padding: 5px;
-	border-bottom: 1px solid black;
+	-webkit-align-items: center; 
+  	align-items:         center;
+	
+	width: 100%;
+	padding: 12px;
+	border-bottom: 1px solid hsl(0, 0%, 80%);
+}
+
+.dropdown-item > img{
+
+	-webkit-flex: 0 0 auto;
+	flex: 0 0 auto; /* grow, shrink, basis */
 } 
 
+.dropdown-item:first-child{
+	padding-top: 20px;
+}
+
+.dropdown-item:last-child{
+	padding-bottom: 20px;
+	border-bottom: none;
+}
+
 .dropdown-item-image{
-	max-width: 50px;
-	max-height: 50px;
-	margin-right: 10px;
+	margin-right: 12px;
 }
 
 
@@ -194,48 +185,655 @@ img{
 	padding:0;
 	width:0;
 	height:0;
-	right:10px;
-	top:-10px;
+	right: 8px;
+	top:-8px;
 	border-top: 0;
-	border-right: 10px solid transparent;
-	border-left: 10px solid transparent;
-	border-bottom: 10px solid #999;
+	border-right: 8px solid transparent;
+	border-left: 8px solid transparent;
+	border-bottom: 8px solid #FFF;
 }
 
-.callout-notch-border{
-	border-bottom-color: red;
-	top: -11px;
+ .callout-notch-border{
+	border-bottom-color: hsl(0, 0%, 80%);
+	top: -9px;
+} 
+
+
+/* pointers for icons */
+#notifications .dropdown-display,
+#requests .dropdown-display,
+#profile .dropdown-display {
+	cursor: pointer;
+}
+
+/* unread number UI */
+.unread-notification-number{
+	position: absolute;
+	top: -8px;
+	right: 50%;
+
+	display: -webkit-flex-;
+	display: flex;
+
+	-webkit-justify-content: center;
+	justify-content: center;
+
+	-webkit-align-items: center;
+	align-items: center;
+	
+	border-radius: 2px;
+	padding: 1px 4px; 
+	font-size: 12px;
+	color:#FFF;
+
+	box-shadow: 2px 1px 0px #FFF;
+	/*box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.4);*/
+	background-color: rgba(231, 76, 60, 0.95);
+}
+
+
+/* Filler placeholder text for navbar dropdowns */
+.navbar-content .filler{
+	text-align: center;
+	padding: 24px 0px;
+}
+
+.navbar-content .filler p{
+	font-size: 20px;
+	color: hsl(0, 0%, 46%);
+}
+
+
+.navbar-content .filler i{
+	font-size: 88px;
+	color: hsl(0, 0%, 90%);
+	margin-bottom: 8px;
+	cursor: context-menu;
+}
+
+
+.timestamp{
+	font-size: 12px;
+	color: hsl(0, 0%, 46%);
 }
 
 
 /* ====== search dropdown ====== */
 
-/* make the search bar occupy vacant space */
- #search.navbar-item{
-	flex: 1;
+.navbar-item#search{
+	-webkit-flex:1;
+	flex:1;
 }
 
-#search.navbar-item .input-addon{
-	width: 100%;
+#search .dropdown-wrapper{
+	right: 0;
 }
+
+#search .dropdown-wrapper.show{
+	top: calc(100% + 2px);
+}
+
+#groupSearchAddon{
+	display: -webkit-flex-;
+	display: flex;
+
+	width: 100%;
+	border: 1px solid hsl(0, 0%, 80%);
+	border-radius: 2px;
+	transition: border 0.2s ease;
+
+	padding: 4px 10px;
+}
+
+#groupSearchAddon .input-addon-field{
+	min-width: 200px;
+	-webkit-flex-: 1;
+	flex:1;
+}
+
+#groupSearchAddon .search-icon,
+#groupSearchAddon .clear-icon{
+	border-radius: inherit;
+	color: hsl(0, 0%, 60%);
+	cursor: pointer;
+	transition: color 0.2s ease;
+}
+
+.focus#groupSearchAddon{
+	border: 1px solid hsl(0, 0%, 46%);
+}
+
+.focus#groupSearchAddon .search-icon,
+.focus#groupSearchAddon .clear-icon{
+	color: hsl(0, 0%, 46%);
+}
+
+
+#groupSearchAddon input[type=text]{
+	font-weight: 400;
+	border: 0;
+	border-radius: inherit;
+	font-size: 16px;
+	padding: 0px 16px;
+}
+
 
 /*make the search dropdown as large as input*/
 #search .dropdown-wrapper{
 	width: 100%;
+	max-height: 500px;
+	overflow: auto;
 }
 
-.input-addon{
-	display: flex;
+#search .dropdown-item{
+	/* anchor tag that is also a flex container */
+	-webkit-align-items: flex-start;
+	align-items: flex-start;
 }
 
-.input-addon-field{
-	flex:1;
+#search .dropdown-item:hover{
+	background-color: hsl(0, 0%, 96%);
 }
 
-.input-addon-item{
-	background-color: #eee;
-} 
 
+#search .dropdown-item img{
+	margin-right: 12px;
+}
+
+.search-group-info p:first-child{
+	/*group name*/
+	font-size: 16px;
+	font-weight: 500;
+	margin-bottom: 4px;
+}
+
+.search-group-info p:last-child{
+	/*group description*/
+}
+
+/* ====== create group icon ====== */
+
+#createGroupLink .material-icons{
+	font-size: 28px;
+}
 
 /* ====== notification dropdown ====== */
+
+#notifications .dropdown-item-message{
+	min-width: 0;
+}
+
+/* ====== request dropdown ====== */
+#requests .dropdown-item{
+	-webkit-justify-content: space-between;
+	justify-content: space-between;
+}
+
+#requests .request-content,
+#requests .dropdown-item-message{
+	min-width: 0;
+}
+
+#requests .dropdown-item .material-icons{
+	display: block;
+}
+
+#requests .spinner{
+	font-size: 24px;
+
+	/* initial value for fade in animation*/
+	opacity: 0;
+}
+
+
+#requests .checked-icon{
+	padding: 6px;
+	border-radius: 50%;
+
+	-webkit-animation: fadeIn 0.2s;
+    animation: fadeIn 0.2s;
+}
+
+#requests .request-checked-icon{
+	/* initial value for fade in animation*/
+	opacity: 0;
+	cursor: context-menu;
+}
+
+/* ====== profile dropdown ====== */
+
+#profile .dropdown-wrapper{
+	width: 200px;
+}
+
+#profile .dropdown-wrapper.show{
+	top: calc(100% + 4px);
+}
+
+
+#profile .dropdown-item{
+	/* anchor tags */
+	display: -webkit-flex;
+	display: flex;
+	font-size: 16px;
+	padding: 16px;
+	border: 0px;
+}
+
+#profile .dropdown-item:nth-of-type(1){
+	padding-bottom: 8px;
+}
+
+#profile .dropdown-item:nth-of-type(2){
+	padding-top: 8px;
+}
+
+#profile .dropdown-item i{
+	margin-right: 8px;
+}
+
+
+#profile .dropdown-item:hover{
+	/*background-color: #F1F1F1;*/
+	background-color: hsl(0, 0%, 96%);
+}
+
+/* change color of callout notch on hover */
+#profile .dropdown-item:first-child:hover ~ .callout-notch{
+	border-bottom: 8px solid hsl(0, 0%, 96%);
+}
+
+#profile .dropdown-item:first-child:hover ~ .callout-notch-border{
+	border-bottom-color: hsl(0, 0%, 70%);
+}
+
+
+/* ======================= PAGE-CONTENT ======================= */
+/* core layout */
+
+.user-content{
+	float: left;
+	/* 10px gutter between the two cols */
+	width: calc(80% - 10px);
+}
+
+.custom-content{
+	float: right;
+	width: 20%;
+}
+
+
+/* ====== Widgets ====== */
+
+.widget{
+	/* card */
+	padding-bottom: 16px;
+}
+
+.widget h5{
+	/* flex container */
+	text-align: center;
+	padding: 16px 0px;
+
+	justify-content: center;
+}
+
+.widget h5 i{
+	margin-right: 5px;
+}
+
+#hotGroups .widget-item{
+	padding: 8px 0px;
+}
+
+#hotGroups .widget-item:last-child{
+	border-bottom: 0px;
+}
+
+
+#hotGroups .group-image{
+	flex: 0 1 72px;
+	padding-left: 16px;
+}
+
+#hotGroups .group-image img{
+	display: block
+}
+
+#hotGroups .group-info{
+	-webkit-flex: 1;
+	flex:1;
+	
+	/* firefox flexbox word-wrap bug */
+	min-width: 0;
+}
+
+#hotGroups .group-info span{
+	display: block;
+}
+
+#hotGroups .group-info span:first-child{
+	font-size: 16px;
+}
+
+#hotGroups .group-info span:last-child{
+	font-size: 13px;
+	color: hsl(0, 0%, 46%);
+}
+
+
+/* ===== COMMON MODAL STYLES ===== */
+
+.form-modal .form-controls{
+	border-top: 1px solid #F1F1F1;
+	padding-top: 8px;
+	padding-bottom: 16px;
+	padding-right: 16px;
+
+	text-align: right;
+}
+
+
+.form-modal .form-controls button:last-child {
+	margin-right: 0px;
+}
+
+
+/* ===== UPLOAD IMAGE MODAL ===== */
+
+.upload-image-modal input[type="file"] {
+	display: none;
+}
+
+.upload-image-modal .image-selected-wrapper{
+	position: relative;
+	width: 200px;
+	height: 200px;
+	margin: 16px auto;
+	border-radius: 4px;
+}
+
+.upload-image-modal .image-selected-wrapper .backdrop-icon {
+	position: absolute;
+	width: 200px;
+	height: 200px;
+	top: 0;
+	left: 0;
+	z-index: -1;
+	
+	display: flex;
+	justify-content: center;
+	align-items: center;
+
+	background-color: #F1F1F1;
+	border-radius: inherit;
+}
+
+.upload-image-modal .guide {
+	text-align: center;
+	margin: 8px 0px;
+}
+
+.upload-image-modal .guide span {
+	padding: 6px 8px;
+}
+
+.upload-image-modal .image-selected-wrapper .backdrop-icon .material-icons {
+	font-size: 128px;
+	color: hsl(0, 0%, 90%);
+	display: block;
+}
+
+.upload-image-modal .image-selected-wrapper img{
+	height: 200px;
+	width: 200px;
+
+	/* this works similar to background-size:cover; but, for img tags */
+	object-fit: cover; 
+
+	display: block;
+	border-radius: inherit;
+	/*placed above backdrop icon*/
+	z-index: 10;
+}
+
+.upload-image-modal .image-selected-wrapper img[src="#void"] {
+	display: none;
+}
+
+.upload-image-modal .file-input-trigger {
+	text-align: center;
+	margin-bottom: 12px;
+}
+
+.upload-image-modal .file-input-trigger button{
+	padding: 0px 8px;
+}
+
+.upload-image-modal .form-controls .upload-image {
+	transition: color 0.22s ease;
+}
+
+
+
+/* =============== SIMPLE MODAL PLUGIN STLYES =============== */
+
+
+.simple-modal-wrapper, .simple-modal-wrapper *{
+	padding: 0;
+	margin: 0;
+}
+
+.simple-modal-wrapper{
+	display: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+
+	/* using #F1F1F1 */
+	background-color: rgba(241,241,241, 0.94);
+}
+
+.modal-content{
+	width: 95%; /* fallback value for mobile size */
+	width: calc(100% - 20px);
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	background-color: #FFF;
+
+    -ms-transform: translate(-50%, -50%);
+    -webkit-transform: translate(-50%, -50%);
+    	transform: translate(-50%, -50%);
+
+    border-radius: 4px;
+    box-shadow: 0px 0px 8px 2px rgba(0, 0, 0, 0.2);
+}
+
+.modal-heading{
+	padding: 16px;
+	padding-bottom: 8px;
+
+
+	border-top-left-radius: inherit;
+	border-top-right-radius: inherit;
+	border-bottom: 1px solid #F1F1F1;
+
+	/*background-color: #FFF;*/
+	font-size: 16px;
+	font-weight: 500; 	
+}
+
+
+.close-modal{
+	float:right;
+	cursor: pointer;
+	vertical-align: middle;
+
+	color: hsl(0,0%,70%); 
+	line-height: 0.5em;
+	font-size: 2em;
+	font-weight: normal;
+
+	transition: color 0.2s ease-in-out;
+}
+
+.close-modal:hover{
+	color: hsl(0,0%,20%);
+}
+
+
+.modal-body{
+	/*background-color: #FFF;*/
+	border-bottom-left-radius: inherit;
+	border-bottom-right-radius: inherit;
+}
+
+.simple-modal-wrapper.confirm-modal .modal-content {
+	margin: 0px auto;
+	margin-top: 65px;
+}
+
+.simple-modal-wrapper.confirm-modal .modal-heading{
+	border-bottom: 0px;
+	display: none;
+}
+
+.simple-modal-wrapper.confirm-modal .modal-body {
+	padding-top: 24px;
+}
+
+.confirm-modal-message {
+	font-size: 16px;
+	padding-left: 16px;
+}
+
+.confirm-modal-controls {
+	text-align: right;
+	margin-top: 16px;
+	padding: 8px 16px 16px 0px;
+}
+
+
+
+
+/*------------ MEDIA QUERIES FOR SIMPLE MODALS ------------*/
+
+@media screen and (min-width: 480px){
+	.modal-content{
+		width: 90%;
+	}
+}
+
+@media screen and (min-width: 768px){
+
+	.modal-content{
+		width: 80%;
+	}
+
+	.simple-modal-wrapper.confirm-modal .modal-content {
+		/*remove defaults*/
+		top:auto;
+		left:auto;
+		position: static;
+		-ms-transform: none;
+		-webkit-transform: none;
+			transform: none;
+
+		/*add your own*/
+		margin: 0px auto;
+		margin-top: 65px;
+		width: 400px;
+	}
+
+	.modal-heading{
+		padding: 16px;
+		padding-bottom: 8px;
+
+		font-size: 20px;
+	}
+
+	.close-modal {
+		font-size: 1.2em;
+	}
+
+}
+
+@media screen and (min-width: 1024px){
+	.modal-content{
+		width: 60%;
+	}
+
+	.simple-modal-wrapper.confirm-modal .modal-content {
+		width: 400px;
+	}
+}
+
+
+/* ============================== IMAGE MODAL STYLES ============================== */
+/* ================================================================================ */
+
+.image-modal {
+
+	cursor: pointer;
+	cursor: -moz-zoom-in; 
+    cursor: -webkit-zoom-in; 
+}
+
+.image-modal-div {
+	padding: 0;
+	margin: 0;
+
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+
+	cursor: alias;
+	cursor: -moz-zoom-out; 
+    cursor: -webkit-zoom-out; 
+
+	background-color: rgba(48,48,48, 0.9);
+}
+
+.image-modal-div img.image-modal-image{
+	/*this gives us the actual image size*/
+	width: auto;
+
+	/* this corrects sizes given by auto if
+	 the viewport(mobile) is smaller than image */
+	max-width: 95%;
+	max-width: calc(100% - 20px);
+
+	/*this scales images to viewport height */
+	max-height: 100%;
+}
+
+.close-image-modal {
+	position: absolute;
+	right: 10px;
+	top: 10px;
+
+	font-size: 3em;
+	font-weight: normal;
+	line-height: 0.5em;
+
+	cursor: pointer;
+	transition: color 0.2s ease-in-out,
+				opacity 0.2s ease-in-out;	
+	opacity: 0.7;
+}
+
+.close-image-modal:hover {
+	color:#FFF;
+	opacity: 1;
+}
+
+
+
+
+
 

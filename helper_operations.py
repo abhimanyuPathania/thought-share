@@ -1,6 +1,7 @@
 
 # this cannot import from models, since it creates a circular import
 # due to models importing add_to_index(only this one)
+# can still use get, put on ndb keys
 
 import time
 import logging
@@ -57,12 +58,12 @@ def get_group_data(group_key_list, params):
 	# called in FeedHandler
 
 	groups = ndb.get_multi(group_key_list)
-	group_data = []
+	group_data = {}
 
 	for g in groups:
 		temp = g.to_dict(include = params)
 		temp['id'] = g.key.id()
-		group_data.append(temp)
+		group_data[temp['name'].lower()] = temp
 	return group_data
 
 
@@ -202,6 +203,19 @@ def search_index(query_string):
 
 	return results
 
+def check_group_edit_allowed(group, user_key):
+	allowed = None
+	#logging.error(group)
+	if group.private:
+		# only admins are allowed to edit private groups
+		allowed = user_key in group.admins
+	else:
+		# only creator is allowed to edit the public group
+		allowed = user_key == group.creator
+
+	return allowed
+
+
 def delete_image(image_type, user_key, group_key):
 	user = user_key.get()
 
@@ -212,7 +226,6 @@ def delete_image(image_type, user_key, group_key):
 			# delete the the blob key, serving urls from datastore
 			user.image_blob = None
 			user.image_url = None
-			#$$user.thumbnail_url = None
 
 			# stor serving the image and delete the orphan blob
 			images.delete_serving_url(blob_key)
@@ -222,29 +235,23 @@ def delete_image(image_type, user_key, group_key):
 			return True
 		else:
 			# user tried to delete non existing image
-			return False
+			return None
 
 	if image_type == 'group':
 		group = group_key.get()
 
 		# check if user is allowed to edit the group
-		allowed = False
-		if group.private:
-			# only admins are allowed to edit private groups
-			allowed = user_key in group.admins
-		else:
-			# only creator is allowed to edit the public group
-			allowed = user_key == group.creator
-
+		allowed = check_group_edit_allowed(group, user_key)
 		if not allowed:
-			return False
+			# delete the uploaded blob
+			blobstore.delete([blob_info.key()])
+			return None
 
 		cover_image_blob_key = group.cover_image_blob_key
 		if cover_image_blob_key:
 			#remove cover image fields if image uploaded
 			group.cover_image_blob_key = None
 			group.cover_image_url = None
-			#$$group.cover_image_thumbnail = None
 
 			# stop serving the image and delete the orphan blob
 			images.delete_serving_url(cover_image_blob_key)
@@ -259,7 +266,52 @@ def delete_image(image_type, user_key, group_key):
 
 		else:
 			# user tried to delete non existing image
-			return False
+			return None
+
+def upload_image(image_type, blob_info, user_key, group_key):
+	user = user_key.get()
+
+	if image_type == 'user':
+
+		# delete the older image if it exists
+		if user.image_blob:
+			images.delete_serving_url(user.image_blob)
+			blobstore.delete([user.image_blob])
+
+		# set new image properties
+		user.image_blob = blob_info.key()
+		user.image_url = images.get_serving_url(user.image_blob)
+
+		user.put()
+		return user.image_url
+
+	if image_type == 'group':
+		group = group_key.get()
+
+		# check if user is allowed to edit the group
+		allowed = check_group_edit_allowed(group, user_key)
+		if not allowed:
+			# delete the uploaded blob
+			blobstore.delete([blob_info.key()])
+			return None
+
+		# delete older image if exists
+		if group.cover_image_blob_key:
+			# stop serving the blob via image service
+			images.delete_serving_url(group.cover_image_blob_key)
+
+			# delete the blob from blobstore
+			blobstore.delete([group.cover_image_blob_key])
+
+		# update to newly uploaded image
+		group.cover_image_blob_key = blob_info.key()
+		group.cover_image_url = images.get_serving_url(group.cover_image_blob_key)
+		group.put()
+
+		# update the search index document to contain latest image url or description
+		add_to_index(group_key.id(), group.name, group.description, group.cover_image_url)
+		return group.cover_image_url
+
 
 
 

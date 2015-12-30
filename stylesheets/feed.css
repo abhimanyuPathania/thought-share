@@ -1,74 +1,293 @@
 
-/* 1200px is the total width available */
+/*  1200px is the total width available 
+	refer .center-container in base-navbar.css
+*/
+
 .fixed-col{
+	/* card */
 	position: fixed;
-	border: 1px solid blue;
-	width: calc(1200px * 0.20);
+	width: 260px;
 
-	/* 50px is padding-top given to body in base.css
-	to accomodate fixed navbar */
-	height: calc(100% - 50px);
+	/* 50px + 15px + 15px*/
+	/* 44px(navbar height), 15px is margin top, bottom */
+	height: calc(100% - ( 50px + 30px ));
+	/*min-height: 180px;*/
+	overflow: auto;
 }
 
-.scrollable-col{
-	position: relative;
-	left: 20%;
-	width: 80%;
-	border: 1px solid red;
+
+.center-col{	
+	/* 80% of 1200px is size of user-content div
+	   Subtract 260px size for fixed-col and 20px for two 10px gutters */
+	width: calc((1200px * 0.80) - 260px - 20px);
+	float: right; 
+	padding-bottom: 15px;
 }
 
-.center-col{
-	width: 78%;
-	float: left;
-	border: 1px solid yellow;
-}
 
-.right-col{
-	width: 22%;
-	float: right;
-	border: 1px solid green;
+/* user group list (fixed-col div)*/
+#groupList h5{
+	text-align: center;
+	padding: 16px 0px;
 }
 
 #groupList .group-item{
-	display: -webkit-flex-;
-	display: flex; 
+	cursor: pointer;
 
-	-webkit-align-items: center;
-	align-items: center;
+	/* makes height on one item 56px*/
+	padding: 8px 0px;
 }
 
-#groupList .group-name{
+#groupList .group-item:hover{
+	background-color: hsl(0, 0%, 96%);
+}
+
+#groupList .group-item.active{
+	background-color: #DDD;
+	border-right: 3px solid hsl(0, 0%, 80%);
+}
+
+
+#groupList .group-image{
+	flex: 0 1 72px;
+	padding-left: 16px;
+}
+
+#groupList .group-image img{
+	/* fix to collapse div and make its height equal to image's */
+	display: block;
+}
+
+#groupList .group-item .group-name{
+	/* strech the group name */
 	-webkit-flex:1;
 	flex:1;
 	
 	/* fix the Firefox word-wrap:break-word; bug */
 	min-width: 0;
+	font-size: 16px;
+
+	transition: all 0.15s ease;
 }
 
-#groupList .group-image{
-	width: 40px;
-	height: 40px;
+#groupList .group-item.active .group-name{
+	font-weight: 500;
+	font-size: 17px;
+}
+
+#groupList .group-item .active-icon{
+	margin-right: 16px;
+	visibility: hidden;
+	opacity: 0;
+	transition: opacity 0.5s ease;
+}
+
+#groupList .group-item.active .active-icon{
+	visibility: visible;
+	opacity: 1
+}
+
+
+/* ===== Current Group ===== */
+#currentGroup{
+	/* not using card class for transitions */
+	background-color: #FFF;
+	box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.15);
+	margin-bottom: 20px;
+
+	display: none;
+	opacity: 0;
+}
+
+.focus#currentGroup{
+	box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.3);
+}
+
+#currentGroup #groupInfo{
+	font-size: 20px;
+	font-weight: 500;
+	padding: 16px;
+	background-color: hsl(0, 0%, 96%);
+}
+
+.focus#currentGroup #groupInfo{
+	padding: 24px;
+	font-size: 28px;
+	font-weight: 400;
+}
+
+#currentGroup #groupInfo .material-icons{
+	font-size: 24px;
+	margin-right: 8px;
 }
 
 
 #postInGroup{
-	border: 1px solid #9b59b6;
+	padding: 0px 16px;
+	padding-top: 16px;
+}
+
+.focus#postInGroup{
+	padding: 0px 24px 24px;
+	background-color: hsl(0, 0%, 96%)
+}
+
+#postInGroup div:first-child{
 	display: -webkit-flex-;
 	display: flex;
-
-	-webkit-align-items: center;
-	align-items: center;
+	-webkit-align-items: flex-start;
+	align-items: flex-start; 
 }
 
 #postInGroup img{
-	height: 60px;
-	width: 60px;
+	width: 50px;
+	height: 50px;
+
+	margin-right: 8px;
+}
+
+.focus#postInGroup img{
+	width: 80px;
+	height: 80px; 
+
+	margin-right: 12px;
 }
 
 #postInGroup textarea{
-	border: none;
-	width: 100%;
+	resize: none;
+	
+	-webkit-flex:1;
+	flex:1;
+	padding: 12px;
+	font-size: 14px;
+
+	min-height: 60px;
+	border: 1px solid hsl(0, 0%, 80%);
+	background-color: hsl(0, 0%, 98%);
+}
+
+.focus#postInGroup textarea{
+	font-size: 16px;
 	min-height: 100px;
+
+	background-color: #FFF;
+	border: 1px solid hsl(0, 0%, 60%);
+	box-shadow:  inset 1px 1px 2px 0px rgba(0, 0, 0, 0.3);
+	border-radius: 2px;
+}
+
+
+
+#postInGroupControls button:first-child{
+	/* share button */
+	margin-right: 8px;
+}
+
+#postInGroupControls button:last-child{
+	opacity: 0;
+	/* this transition value is executed from focus -> normal; on removing class */
+
+	/* opacity animation is triggered after textarea focus animation */
+	transition: opacity 0.3s ease,
+				background-color 0.3s ease,
+				color 0.3s ease;
+}
+
+.focus#currentGroup #postInGroupControls button:last-child{
+	opacity: 1;
+
+	/* this transition value is executed from normal -> focus; on adding class */
+	transition: opacity 0.2s ease 0.12s,
+				background-color 0.3s ease,
+				color 0.3s ease;
+}
+
+
+
+#currentGroup #postInGroupControls{
+	padding: 16px;
+}
+
+.focus#currentGroup #postInGroupControls{
+	padding: 24px;
+}
+
+#currentGroup,
+#currentGroup #groupInfo,
+#postInGroup,
+#postInGroup img,
+#postInGroup textarea {
+	transition-property: all;
+	transition-duration: 0.12s;
+	transition-timing-function: cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+
+#newFeed{
+	position: fixed;
+	display: flex;
+	align-items: center;
+
+	padding: 5px 16px;
+	padding-right: 24px;
+	/* this roughly puts fixed span in center of the '.center-col' div */
+	/* calculated by hit and trail */
+	left: calc(50% + 21px);
+	
+	/* this center the element irrespective of its width */
+	transform: translateX(-50%);
+	
+	/* put it on top of positioned post-item DIVS */
+	z-index: 1;
+
+	background-color: rgba(255,255,255, 0.93);
+	box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.5);
+	border-radius: 2px;
+
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+}
+
+#newFeed:hover{
+	background-color: hsla(0, 0%, 96%, 0.9);
+}
+
+
+#newFeed span:nth-of-type(1){
+	/*text*/
+	font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    margin-left: 5px;
+}
+
+#newFeed span:nth-of-type(2){
+	/* container for 'close' icon */
+	position: absolute;
+	top:2px;
+	right:3px;
+
+}
+
+#newFeed span:nth-of-type(2) .material-icons{
+	font-size: 13px;
+	transition: font-size 0.2s ease;
+}
+
+#newFeed span:nth-of-type(2) .material-icons:hover{
+	font-size: 15px;
+}
+
+
+/* ===== POST LIST ===== */
+
+#postWrapper {
+	position: relative;
+}
+
+#postList{
+	/* adding addition 5px to existing 10px spacing between cols */
+	padding: 0px 5px;
 }
 
 #postList, .post-item{
@@ -76,12 +295,52 @@
 }
 
 .post-item{
-	border: 1px solid black;
+	/* card */
+	position: relative;
+	margin-bottom: 15px;
+	
+	background-color: #FFF;
+	box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.25);
+	padding: 16px;
+	padding-bottom: 28px;
+	border-radius: 2px;
+	
+	transition: background-color 0.4s ease 0.1s,
+				box-shadow 0.4s ease 0.1s;
+	
+	/* for ko's afterAdd call which fades in the posts */
+	opacity: 0;
+}
+
+.post-item.currently-editing{	
+	background-color: hsl(0, 0%, 96%);
+	box-shadow: 0px 2px 6px 1px rgba(0, 0, 0, 0.4);
+}
+
+
+.post-item.currently-editing .post-edit-controls button.btn-normal{
+	background-color: hsl(0, 0%, 96%);
+}
+
+.post-item.currently-editing .post-edit-controls button:hover.btn-normal,
+.post-item.currently-editing .post-edit-controls button:focus.btn-normal{
+	background-color: hsl(0, 0%, 88%);
+}
+ 
+
+.post-item:last-child{
+	margin-bottom: 0px;
+}
+
+.post-item-poster{
+	display: -webkit-flex-;
+	display: flex;
+	border-bottom: 1px solid hsl(0,0%,80%);
+	padding-bottom: 16px; 
 }
 
 .poster-image{
-	max-height: 60px;
-	max-width: 60px;
+	margin-right: 16px;
 }
 
 .poster-info{
@@ -89,42 +348,206 @@
 	min-width: 0;
 }
 
-.poster-name{
-	/* word-wrap was not working here*/
-	/* -ms-word-break: break-all;
-	word-break: break-all; */
+.poster-info .timestamp{
+	font-size: 12px;
 }
 
-.post-item-poster{
-	display: -webkit-flex;
-	display: flex;
-	
-	-webkit-align-items: center;
-	align-items: center;
+.poster-name{
+	font-size: 16px;
+	font-weight: 500;
 }
 
 .post-item-post{
-	border: 1px solid #e67e22;
+	margin-top: 16px;
 }
+
+/* post controls - dropdowns for editing/deleting options */
 
 .post-controls{
-	text-align: right;
+	position: absolute;
+	top: 10px;
+	right: 10px;
 }
 
-.post-edit .post-edit-input{
-	width: 100%;
+.post-control-dropdown{
+	display:none;
+	position: absolute;
+	top: 18px;
+	right: 18px;
+	width: 120px;
+}
+
+.post-control-dropdown.card{
+	border-radius: 2px;
+	box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.25);
+}
+
+.post-control-display .material-icons{
+	display: block;	
+}
+
+.post-control-display button{
+	transition-duration: 0.28s;
+}
+
+.post-control-display button.btn-icon{
+	transition-property: background-color, color;
+	color: hsl(0, 0%, 46%);
+}
+
+.post-control-display button:hover.btn-icon,
+.post-control-display button:focus.btn-icon{
+	color: hsl(0, 0%, 20%);
+}
+
+.post-control-dropdown-item{
+	padding: 16px;
+	cursor: pointer;
+}
+
+.post-control-dropdown-item:hover{
+	background-color: hsl(0,0%,96%);
+}
+
+.post-control-dropdown-item:nth-of-type(1){
+	padding-bottom: 8px;
+}
+
+.post-control-dropdown-item:nth-of-type(2){
+	padding-top: 8px;
+}
+
+.post-control-dropdown-item i{
+	margin-right: 8px;
+	font-size: 24px;
+}
+
+.post-control-dropdown-item span{
+	text-transform: capitalize;
+	font-size: 16px;
+}
+
+
+.post-edit{
+	margin-top: 16px;
+	opacity: 0;
 }
 
 .post-edit-controls{
-	text-align: right;
+	margin-top: 16px;
+}
+
+.post-edit-controls button:nth-of-type(1){
+	margin-right: 8px;
 }
 
 
-.clearfix:after{
-	content: " ";
-	font-size: 0;
-	height: 0;
+.post-edit .post-edit-input{
+	/* text area */
+	width: 100%;
+	border: 1px solid hsl(0,0%, 60%);
+	border-radius: 2px;
+	padding: 16px;
+	resize: none;
+}
+
+
+
+#feedSpinner{
+	position: absolute;
+	width: 100%;
+	top:0;
+	left:0;
+}
+
+#feedSpinner div {
+	text-align: center;
+	padding-top: 100px;
+}
+
+#feedSpinner div i {
+	font-size:48px;
+	color: hsl(0,0%,46%);
+}
+
+
+.second#feedSpinner{
+	position: fixed;
+	top:0;
+	left:0;
+	width: 100%;
+	height: 100%;
+
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.second#feedSpinner > div {
+	width: 150px;
+	height: 150px;
+	
+	border-radius: 50%;
+	background-color: hsla(0, 0%, 100%, 0.8);
+	box-shadow: 0px 0px 5px 0px rgba(0, 0, 0, 0.4);
+	padding-top: 0;
+	
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.second#feedSpinner div i {
+	font-size: 28px;
+	color: hsl(0, 0%, 50%);
+}
+
+/* ===== FILLER MESSAGE STYLES ===== */
+
+#noPost,
+#noGroupJoined {
+	display: none;
+	opacity: 0;
+}
+
+/* ====== More feed button ====== */
+
+#moreFeed{
+	margin-top: 15px;
+	padding: 0px 5px;
+
+	display: none;
+	opacity: 0;
+}
+
+#moreFeed button.btn-normal.raised{
 	display: block;
-	visibility: hidden;
-	clear:both;
+	width: 100%;
+	background-color: #DDD;
+	height: 40px;
+	transition: none;
+}
+
+#moreFeed button:disabled.btn-normal{
+	color: hsl(0, 0%, 46%);
+	background-color: hsl(0, 0%, 96%);
+	border: 1px solid hsl(0, 0%, 80%);
+}
+
+#moreFeed button:disabled.btn-normal.raised{
+	box-shadow: none;
+}
+
+#moreFeed button:hover.btn-normal,
+#moreFeed button:focus.btn-normal{
+	/* background-color: inherit; */
+}
+
+#moreFeed button:enabled:active.btn-normal{
+	background-color: hsl(0,0%,76%);
+}
+
+.widget{
+	/* margin with background gives the impression of seperation */
+	/* margin-left: 10px; */
 }

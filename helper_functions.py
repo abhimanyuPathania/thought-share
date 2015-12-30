@@ -45,20 +45,20 @@ def get_group_id(name):
 
 def check_display_name(name):
 	if name.isspace():
-		raise BadUserInputError('Invalid display name')
+		raise BadUserInputError('Invalid display name.')
 		
 	if name and not DISPLAY_NAME_RE.match(name):
-		raise BadUserInputError('Invalid display name')
+		raise BadUserInputError('Invalid display name.')
 	san_name = re.sub(r'[\s]{2,}', ' ', name).strip()
 	return san_name
 
 def check_uploaded_image(blob_info):
 	# don't allow non images and gifs
 	if 'image' not in blob_info.content_type or 'gif' in  blob_info.content_type:
-		raise BadImageError('Not an image file')
+		raise BadImageError('Not an image file.')
 
 	if blob_info.size > MAX_IMAGE_SIZE_BYTES:
-		raise BadImageError('Image size more than 10MB')
+		raise BadImageError('Image size more than 10MB.')
 
 
 def check_query_string(q):

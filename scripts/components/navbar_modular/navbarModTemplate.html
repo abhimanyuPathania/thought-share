@@ -1,44 +1,58 @@
 <div class="navbar-wrapper">
 
-	<div class="navbar-content center-container">
+	<div class="navbar-content center-container center-content-vertically">
 		
-		<div class="navbar-item">
-			<a href="/feed">Thought Share</a>
-		</div>
+		<div class="navbar-left center-content-vertically">
 
-		<div class="navbar-item dropdown" id="search">
-			<group-search></group-search>
-		</div>
-
-		<div class="navbar-item dropdown" id="notifications">
-			<post-notification params="parentRef: parentRef"></post-notification>
-		</div>
-
-		<div class="navbar-item dropdown" id="requests">
-			<request-notification></request-notification>
-		</div> <!-- END NAVBAR ITEM-->
-
-		<div class="navbar-item dropdown" id="profile" data-bind="with: navbarData()">
-			<div class="dropdown-display" data-bind="click: $component.toggleProfileDropdown">
-				<!-- the image/icon/text that triggers dropdown-->
-				<p>
-					<img data-bind="attr: {src: imageThumb, alt: 'your profile picture'}">
-					<span data-bind="text: firstName"></span>
-				</p>
+			<div class="navbar-item">
+				<a href="/feed">Thought Share</a>
 			</div>
-			<div class="dropdown-wrapper">
-				<!-- main content wrapper div whose display is toggled-->
-				<b class="callout-notch callout-notch-border"></b>
-				<b class="callout-notch"></b>
-				<div class="dropdown-item">
+
+			<div class="navbar-item dropdown" id="search">
+				<group-search></group-search>
+			</div>
+
+			<div class="navbar-item" id="createGroupLink" title="create new group">
+				<a href="/create-group" class="center-content-vertically link-text-shadow"><i class="material-icons">group_add</i></a>
+			</div>
+
+		</div> <!-- END NAVBAR LEFT -->
+
+		<div class="navbar-right center-content-vertically">
+			
+			<div class="navbar-item dropdown" id="notifications">
+				<!-- 
+					The navbar component is passing the parentRef down to post notifications VM.
+				 -->
+				<post-notification params="parentRef: parentRef"></post-notification>
+			</div>
+
+			<div class="navbar-item dropdown" id="requests">
+				<!-- 
+					The navbar component is passing the parentRef down to request component VM.
+				 -->
+				<request-notification params="parentRef: parentRef"></request-notification>
+			</div> <!-- END NAVBAR ITEM-->
+
+			<div class="navbar-item dropdown" id="profile" data-bind="with: navbarData()">
+				<div class="dropdown-display center-content-vertically" data-bind="click: $component.toggleProfileDropdown">
+					<!-- the image/icon/text that triggers dropdown-->
+					<img class="avatar-round" data-bind="attr: {src: imageThumb, alt: 'your profile picture'}">
+				</div>
+				<div class="dropdown-wrapper">
+					<!-- main content wrapper div whose display is toggled-->
+
 					<!-- content of dropdown menus-->
-					<a href="/view-profile">View Profile</a>
+					<a class="dropdown-item" href="/view-profile"><i class="material-icons">face</i>Your Profile</a>
+					<a class="dropdown-item" data-bind="attr: {href: logoutURL}"><i class="material-icons">power_settings_new</i>Logout</a>
+
+					<b class="callout-notch callout-notch-border"></b>
+					<b class="callout-notch"></b>
+					
 				</div>
-				<div class="dropdown-item">
-					<a data-bind="attr: {href: logoutURL}">Logout</a>
-				</div>
-			</div>
-		</div> <!-- END NAVBAR ITEM-->
+			</div> <!-- END NAVBAR ITEM-->
+
+		</div><!-- END NAVBAR RIGHT -->
 						
 	</div> <!-- END NAVBAR CONTENT -->
 

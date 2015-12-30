@@ -5,15 +5,20 @@
  -->
 
 <div class="dropdown-display">
-	<button data-bind="click: displayNotifications">Read</button>
-	<span data-bind="text: unreadPostNotifications, visible:unreadPostNotifications() > 0 "></span>
+	<div data-bind="click: displayNotifications" class="center-content-vertically">
+		<i class="material-icons">notifications</i>
+	</div>
+
+	<div class="unread-notification-number" data-bind="visible:unreadPostNotifications() > 0, click: displayNotifications">
+		<span data-bind="text: unreadPostNotifications"></span>
+	</div>	
 </div>
 
 <div class="dropdown-wrapper">
 	<b class="callout-notch callout-notch-border"></b>
 	<b class="callout-notch"></b>
 	<div class="dropdown-items-heading">
-		<h4>Notifications</h4>
+		<p>Notifications</p>
 	</div>
 	
 	
@@ -21,20 +26,26 @@
 		<!-- using foreach without container element -->
 		<!-- ko foreach: postNotifications -->
 	        <div class="dropdown-item">
-	        	<img class="dropdown-item-image" data-bind="attr: {src: posterImage, alt: posterName + '\'s profile picture'}">
-
+	        	<img class="dropdown-item-image avatar-rect" data-bind="attr: {src: posterImage}">
 	        	<div class="dropdown-item-message">
-	        		<p data-bind = "text: notificationText"></p>
+	        		<p data-bind = "html: notificationText"></p>
 					<p>
 						<span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': timestamp, 'data-notification': true }"></span>
 					</p>
 	        	</div>
 			</div>
     	<!-- /ko -->
+
+    	<!-- ko ifnot: postNotifications() -->
+    		<div class="filler">
+    			<i class="material-icons">notifications_off</i>
+    			<p>no notifications</p>
+    		</div>
+    	<!-- /ko -->
 	</div>
 
 	
 	<div class="dropdown-items-footer">
-		<a href="/view-profile#notifications">View all</a>
+		<a href="/view-profile#notifications" class="link-text-shadow">View all</a>
 	</div>
 </div>

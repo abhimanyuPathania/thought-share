@@ -5,20 +5,21 @@
  -->
 
 <div class="dropdown-display">
-	<div class="input-addon">
-		<span class="input-addon-item">(Search)</span>
-		<input type="text" class="input-addon-field" data-bind="event:{ keyup : queryGroups }" placeholder="Discover new groups">
-		<span class="input-addon-item">(+)</span>
+	<div class="input-addon" id="groupSearchAddon" data-bind="css:{focus: focus}">
+		<i class="material-icons search-icon" data-bind="click:addFocus">search</i>
+		<!-- <span class="input-addon-item icon icon-search"></span> -->
+		<!-- <input type="text" class="input-addon-field" data-bind="event:{ keyup : queryGroups },hasFocus: focus" placeholder="Discover new groups"> -->
+		<input type="text" class="input-addon-field" data-bind="hasFocus: focus, textInput:query" placeholder="Discover new groups">
+		<i class="material-icons clear-icon" data-bind="visible: showClear, click: clearSearch">clear</i>
 	</div>
 </div>
 
 <div class="dropdown-wrapper" data-bind="foreach: groupQueryResults">
-	<div class="dropdown-item">
-		<img data-bind="attr: {src: image}">
-		<div>
-			<p><a data-bind="text: name, attr:{href: url}"></a></p>
-			<p data-bind="text: description"></p>
-		</div>
-		
-	</div>
+	<a class="dropdown-item" data-bind="attr:{href: url}">
+		<img class="avatar-rect" data-bind="attr: {src: image}">
+		<div class="search-group-info">
+			<p data-bind="text: name"></p>
+			<p data-bind="text: descriptionPreview"></p>
+		</div>	
+	</a>
 </div>

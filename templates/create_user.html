@@ -1,34 +1,87 @@
 {% extends 'base.html' %}
 
 {% block title %}
-	<title>Thought Share</title>
+	<title>Create Profile</title>
+{% endblock %}
+
+{% block style_sheets %}
+
+	<!-- ADD THE ROBOTO FONT STYLESHEET HERE -->
+	<!-- <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"> -->
+  	<link href="../stylesheets/icons.css" rel="stylesheet">
+	<link rel="stylesheet" href="../stylesheets/base.css">
+	<link rel="stylesheet" href="../stylesheets/create-user.css">
+
 {% endblock %}
 
 {% block content %}
+<!-- not using the jinja scripts block -->
 <script data-main="../scripts/createUserMain" src="../scripts/libs/require.js"></script>
 
-<h2>
-	Create your account
-</h2>
-<p>Linked google account: {{email}}</p>
-<div>
-	<p>Use another google account? <a href="{{status_url}}">Logout</a></p>
-</div>
+<div id="formWrapper" class="card">
+	<form id="createUserForm" enctype="multipart/form-data" method="POST" data-bind="submit: createUser">
+		
+		<div id="formHeader">
+			<h4>
+				Just one more step...
+			</h4>
+		</div>
 
-<div>
-	<form id="createUserForm" action="{{form_action}}" enctype="multipart/form-data" method="POST">
-		<div>
-			<h3>choose a display name</h3>
-			<input type="text" name="display_name">
+		<div id ="formFieldsPaddingWrapper">
+			
+			<div class="form-field material-input-wrapper material-name-field">					
+				<div class="material-input-group">
+					<input type="text" name="display_name" data-bind="textInput: displayName">
+					<span class="bar"></span>
+					<label>Choose a display Name</label>
+
+					<div class="guide">
+						<span>Only numbers, alphabets and spaces are allowed. Display name can be changed later.</span>
+					</div>
+				</div>			
+			</div>
+			
+			<!-- this is the imageWrapper div as used as hook in enableForms.js-->
+			<div class="form-field material-image-upload" id="imageField">			
+				<div class="flex-wrapper">
+					<div class="center-content-vertically">
+						<label>Upload your image</label>
+						<button type="button" title="select your image" class="file-input-trigger btn-icon"><i class="material-icons">photo_camera</i></button>
+						<button type="button" title="remove selected image" class="btn-icon file-input-clear"><i class="material-icons">delete</i></button>
+					</div>
+
+					<div class="image-preview">
+						<img class="avatar-rect" src="../images/defaults/user60.png">
+						<span>default</span>
+					</div>
+				</div>
+								
+				<div class="guide">
+					<span></span>	
+				</div>
+
+				<input type="file" name="file" value="Select">
+			</div>
+
+			<div class="form-field">
+				<div id="googleAccount">
+					<span>Linked Google account:</span>
+					<span>{{email}}</span>
+				</div>
+			</div>
+
 		</div>
-		<div>
-			<h3>set your image(optional)</h3>
-			<input type="file" name="file" value="Select">
+
+		<div id="submitButtonWrapper">
+			<button type="submit" class="btn-normal" data-bind="enable: enableSubmit">Create account</button>	
 		</div>
-		<div>
-			<input type="submit" name="submit" value="Create">
+
+		<div id="logout">
+			<span>Logout and use another Google account</span>
+			<button title="Logout" class="btn-icon" data-logout-url="{{status_url}}" data-bind="event : {click : logoutUser}">
+				<i class="material-icons">power_settings_new</i>
+			</button>
 		</div>
-	</form>
-	<div id="error">{{error}}</div>	
+	</form>	
 </div>
 {% endblock %}

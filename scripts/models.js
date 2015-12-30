@@ -11,7 +11,7 @@ to source/render the overlaying ViewModels */
 	group_name -> name of the group in which it was posted(only used in /view-profile)
 	user_id -> id of the user who posted it
 	poster_name -> name of the poster
-	poster_image -> thumbnail of the poster
+	poster_image -> thumbnail of the poster(constants.FEED_POSTER_IMAGE)
 	post -> post content
 	post_id -> urlsafe of the actual GroupPost entity
 	created -> integer timestamp
@@ -38,7 +38,7 @@ to source/render the overlaying ViewModels */
 	id -> group id
 	name ->	group name
 	private -> boolean stating group is private or not
-	cover_image_url -> thumbnail for group (40px)
+	cover_image_url -> thumbnail for group (constants.GROUP_LIST_ITEM_IMAGE)
  */
 
 
@@ -49,9 +49,22 @@ to source/render the overlaying ViewModels */
 /* 
 	name ->	group name
 	url -> url leading to that group's landing page
-	image -> thumbnail image(50px)
+	description -> group description
+	image -> thumbnail image(constants.SEARCH_IMAGE)
+	descriptionPreview -> shortened preview of description display(constants.GROUP_DESCRIPTION_PREVIEW_CHAR_LIMIT)
  */
 
+//========================== HOT GROUPS MODEL ==========================//
+// @feedPageViewModel
+/* 
+	name -> group name
+	url -> group's landing page url
+	membersNumber ->number of members
+	membersText -> text string number of members
+	
+	imageURL -> group cover image url
+	thumbURL -> group thumbnail(constants.HOT_GROUPS_IMAGE)
+ */
 
 
 //========================== GROUP MODEL ==========================//
@@ -73,6 +86,8 @@ to source/render the overlaying ViewModels */
 	private_str -> 'Private group' or 'Public group'
 	members_str -> '1 member' or 'n members'
 	url -> link to the group's landing page
+	admin -> true if user is admin of that group
+	creator -> true is user created that group
  */
 
  //========================== FEED MODEL ==========================//
@@ -114,12 +129,28 @@ to source/render the overlaying ViewModels */
 	timestamp -> unix timestamp
 
 	//added client side
-	timestampText -> textual repersentation of timestamp according to client's local time
+	
 	text -> textual description of notification
 	user_image -> thumbnail sized requestee image(constants.REQUEST_IMAGE || constants.PROFILE_REQUEST_IMAGE)
  */
 
+ 
 
+ //========================== REQUEST MODEL ==========================//
+ // @userProfileViewModel
+/* 
+	group_name -> name of the the group to which request is targeted
+	user_name -> display name of requestee
+	user_image -> thumbnail sized requestee image(constants.PROFILE_REQUEST_IMAGE)
+	request_hash -> unique hash identifying the request
+	complete -> observable tracking status of request
+	request_type -> 'admin' or 'join'
+	timestamp -> observable of unix timestamp
+
+	//added client side
+	timestampText ->Computed observable tracking text repersentation of timestamp according to client's local time
+	text -> textual description of notification (observable)
+ */
 
 
 

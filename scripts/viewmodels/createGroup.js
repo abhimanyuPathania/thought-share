@@ -1,15 +1,41 @@
 define(['jquery',
-		'helper',
-		'constants'], 
-function($, helper, constants){
+		'enableForms',
+		'constants',
+		'velocity',
+		'velocity-ui'], 
+function($, enableForms, constants, Velocity){
 
 return function() {
 
 var createGroupForm = $("#createGroupForm");
-var textarea = $("textarea", createGroupForm);
-var counterSpan = $("#descCount");
+var textarea = $(".material-description-field textarea");
+
 var nameInput = $("input[type=text]", createGroupForm);
-var availableSpan = $("#nameAvailable");
+var nameAvailableDiv = $("#nameAvailable");
+var naveAvailableIcon = $("#nameAvailable i");
+var naveAvailableText = $("#nameAvailable span");
+var nameGuide = $(".material-name-field .guide");
+
+var privateCheckBox = $("#makePrivate input")
+var checkboxIconDiv = $(".checkbox-icons");
+//cache selectors for checkbox animations
+var checkboxChecked = $(".checked", checkboxIconDiv);
+var checkboxUnchecked = $(".unchecked", checkboxIconDiv);
+var publicIcon = $("#makePrivate .status-icons .public");
+var privateIcon = $("#makePrivate .status-icons .private");
+
+var inputList = textarea.add(nameInput);
+var formFields = $(".form-field");
+
+var errorDiv = $("#error");
+var displayError = $("span", errorDiv);
+
+var imageMetadata = {
+	"url": constants.DEFAULT_GROUP_IMAGE,
+	"size": constants.CREATE_GROUP_IMAGE_UPLOAD_PREVIEW_IMAGE
+}
+
+
 
 var checkNameAvailability =  (function (){
 
@@ -31,9 +57,18 @@ var checkNameAvailability =  (function (){
 
 		var queryString = $.trim(event.target.value);
 		var pattern = constants.GROUP_NAME_REGEX;
-		
+		var inputFormField = formFields.eq(0);
+
 		if (!pattern.test(queryString)) {
-			availableSpan.text("");
+			var display = nameAvailableDiv.css("display");	
+			nameAvailableDiv.attr("data-name-available", "");
+
+			if (display == "inline-block" || display == "block") {
+				nameAvailableDiv.velocity("transition.expandOut", {
+					duration: 300
+				});
+			}
+
 			return false;
 		}
 		// if we come till here that means now we have something to query for
@@ -63,19 +98,36 @@ var checkNameAvailability =  (function (){
 					if(available) {
 						//set the feed back and an additional data-attribute to
 						//test during form submission
-						availableSpan.text("Group name available");
-						availableSpan.attr("data-name-available", "yes");
+						if (nameAvailableDiv.attr("data-name-available") != "yes") {
+							naveAvailableText.text("Group name available");
+							naveAvailableIcon.text("check_circle");
+							nameAvailableDiv.attr("data-name-available", "yes");
+
+							inputFormField.removeClass("error");
+						}
+						
 					} else {
-						availableSpan.text("Group name not available");
-						availableSpan.attr("data-name-available", "no");
+						
+						if (nameAvailableDiv.attr("data-name-available") != "no") {
+							naveAvailableText.text("Group name not available");
+							naveAvailableIcon.text("cancel");
+							nameAvailableDiv.attr("data-name-available", "no");
+
+							inputFormField.addClass("error");
+						}						
 					}
-					
+
+					//only animate if not visible
+					if (nameAvailableDiv.css("display") == "none"){
+						nameAvailableDiv.velocity("transition.expandIn", {
+							duration: 300
+						});
+					}			
 				},
 
 				error: function() {
 					console.log("error at group text search");
-					availableSpan.text("");
-					availableSpan.attr("data-name-available", "no");
+					nameAvailableDiv.attr("data-name-available", "no");
 				}
 			});	
 
@@ -87,58 +139,178 @@ var checkNameAvailability =  (function (){
 
 //events are attached here since checkNameAvailability is declared as a var
 createGroupForm.submit(checkForm);
-textarea.on("keyup", updateCharacterCount);
-nameInput.on("keyup", checkNameAvailability);
+
+enableForms.setupInputGuidesAndLabels(inputList);
+enableForms.setupDescriptionField(formFields.eq(1));
+enableForms.setupImageUploadField(formFields.eq(2), imageMetadata);
+
+//not using enableForms for name input
+nameInput.on("input", checkNameAvailability);
+nameInput.on("blur", checkNameInput);
+
+checkboxIconDiv.click(updateCheckbox);
+
+function updateCheckbox() {
+	var checkboxIconShow, checkboxIconHide
+	var statusIconShow, statusIconHide
+
+	//if last animation is not complete, return
+	if ( $(".velocity-animating", checkboxIconDiv).length ) {
+		return;
+	}
+
+	if (privateCheckBox.prop("checked")) {
+		//set the show/hide icons to be animated
+		checkboxIconShow = checkboxUnchecked;
+		checkboxIconHide = checkboxChecked;
+
+		statusIconShow = publicIcon;
+		statusIconHide = privateIcon;
+
+		//change the checkbox state
+		privateCheckBox.prop("checked", false);
+	} else {
+		checkboxIconShow = checkboxChecked;
+		checkboxIconHide = checkboxUnchecked;
+
+		statusIconShow = privateIcon;
+		statusIconHide = publicIcon;
+
+		privateCheckBox.prop("checked", true);
+	}
+
+	checkboxIconHide.velocity("transition.expandOut", {
+		duration: 100,
+		complete: function() {
+			checkboxIconShow.velocity("transition.expandIn", {
+				duration: 200,
+				display: "block"
+			});
+		}
+	});
+
+	statusIconHide.velocity("transition.flipXOut", {
+		duration: 100,
+		complete: function() {
+			statusIconShow.velocity("transition.flipXIn", {
+				duration: 200,
+				display:"block"
+			});
+		}
+	});
+	
+	var makePrivateFormField = formFields.eq(3);
+	if (privateCheckBox.prop("checked")) {
+		makePrivateFormField.addClass("active");
+	} else {
+		makePrivateFormField.removeClass("active");
+	}
+	
+}
 
 
+function checkNameInput() {
+	var pattern = constants.GROUP_NAME_REGEX;
+	var inputFormField = formFields.eq(0);
+	var materialInput = $("input", inputFormField);
+	var name = nameInput.val();
+
+	//when user emptys the input; remove error class and hide the guide
+	if (!name) {
+		inputFormField.removeClass("error");
+		hideGuide();
+		return;
+	}
+
+	//if input is invalid or group name is taken, add error class and animate shake
+	// don't hide guide in this case
+	if (!pattern.test(name) || (nameAvailableDiv.attr("data-name-available") == "no")) {	
+		inputFormField.addClass("error");
+		inputFormField.velocity("callout.shake", {
+			duration: 500
+		});
+
+		if (pattern.test(name) && nameAvailableDiv.attr("data-name-available") == "no") {
+			//hide the input name guide if only group name is not available
+			hideGuide();
+		}
+
+		return;
+	}
+
+	// if input is correct, just hide the guide
+	hideGuide();
+
+	function hideGuide() {
+		nameGuide.velocity("transition.slideUpOut", {
+			duration: 300,
+			display: null
+		});
+	}
+}
+
+
+
+function showError() {
+
+	errorDiv.velocity("transition.expandIn", {
+		duration: 300,
+		complete: function() {
+			errorDiv.velocity("callout.pulse", {
+				duration: 300
+			});
+		}
+	});
+}
 
 //event handlers
 function checkForm(e) {
+
+	var nameInputFormField = formFields.eq(0);
+	var descFormField = formFields.eq(1);
+
 	var name = $.trim(nameInput.val());
 	var description = $.trim(textarea.val());
-	var file = $("input[type=file]", this).prop("files");
-	var error = $("#error", this);
 	var pattern = constants.GROUP_NAME_REGEX;
 
 	var cancelSubmission = false;
-	// both name and description are missing
-	if (!(name && description)){
-		error.text("Name and Description cannot be left empty");
-		cancelSubmission = true;
-	}
-
-	if (availableSpan.attr("data-name-available") === "no"){
-		// no need to display message here
-		cancelSubmission = true;
-	}
-
-	if (!pattern.test(name)){
-		error.text("Invalid group name");
-		cancelSubmission = true;
-	}
-
 
 	if (description.length > constants.GROUP_DESCRIPTION_CHAR_LIMIT){
-		error.text("Group description exceeds" + constants.GROUP_DESCRIPTION_CHAR_LIMIT + "characters");
+		displayError.text("Group description exceeds " + constants.GROUP_DESCRIPTION_CHAR_LIMIT + " characters");
 		cancelSubmission = true;
+		descFormField.addClass("error");
 	}
 
-	if (file.length > 1){
-		error.text("Please upload only one image");
+	if (description.length === 0){
+		displayError.text("Group description is required.");
 		cancelSubmission = true;
+		descFormField.addClass("error");
 	}
 
-	if (file.length) {
-		var checkFile = helper.checkImageFile(file);
-		if (!checkFile.ok) {
-			error.text(checkFile.errorStr);
-			cancelSubmission = true;
+		if (!pattern.test(name)){
+		var errorText = "Invalid group name.";
+
+		if (name.length === 0) {
+			errorText = "Group name is required.";
 		}
+
+		displayError.text(errorText);
+		nameInputFormField.addClass("error");
+		cancelSubmission = true;
 	}
+
+	if (nameAvailableDiv.attr("data-name-available") === "no"){
+		// no need to display message here
+		nameInputFormField.addClass("error");
+		cancelSubmission = true;
+	}
+
 
 	// after all the tests check if form is to be submitted
 	if (cancelSubmission) {
 		e.preventDefault();
+		showError();
+
 		return false;
 	}
 
@@ -146,9 +318,6 @@ function checkForm(e) {
 	return true; 
 }
 
-function updateCharacterCount() {
-	counterSpan.text(helper.getCharLeft(textarea.val())); 
-}
 
 }; // end returned function
 

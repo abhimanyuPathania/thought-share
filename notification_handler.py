@@ -1,5 +1,6 @@
 
 import json
+import time
 import logging
 
 from google.appengine.ext import ndb
@@ -163,6 +164,7 @@ class CompleteRequestHandler(Handler):
 		# since only ancestor queries are allowed inside
 		req = PrivateRequest.query(PrivateRequest.request_hash == request_hash).get()
 		if not req or (req and req.complete):
+			#time.sleep(5)
 			return self.fail_ajax();
 
 		# get back target group entity to set notification

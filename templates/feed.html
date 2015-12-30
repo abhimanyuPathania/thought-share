@@ -18,90 +18,150 @@
 	<script type="text/javascript" data-main="../scripts/feedMain" src="../scripts/libs/require.js"></script>
 {% endblock %}
 
-{% block content %}
+{% block user_content %}
 	
-<div class="fixed-col">
-	<h4>Your Groups</h4>
-    <div id="groupList" data-bind="foreach: groups">
-    	<div class="group-item">
-    		<img class="group-image" data-bind="attr:{src: cover_image_url, alt: name+' cover image'}">	
-    		<p class="group-name" data-bind = "text: name, click: $parent.updateCurrentGroup"></p>
+<div id="groupList" class="fixed-col card" data-bind="styleCurrentGroup: currentGroup">
+	<h5>Your Groups</h5>
+    <div data-bind="foreach: groups">
+    	<div class="group-item center-content-vertically" data-bind="click: $parent.updateCurrentGroup, attr:{'data-group-id': id}">
+    		<div class="group-image">
+    			<img class="avatar-round" data-bind="attr:{src: cover_image_url}">
+    		</div>  	
+    		<span class="group-name" data-bind = "text: name"></span>
+    		<i title="currently reading" class="material-icons active-icon">description</i>
     	</div>
     </div>	
 </div>
 
-<div class="scrollable-col clearfix">
 
-	<div class="center-col">
-		<button data-bind = "enable: newFeedFlag(), click:updateCurrentGroupFeed">you got new posts</button>
-		<!-- ko if: currentGroup() -->
-			<p><strong data-bind = "text: currentGroup().name"></strong></p>
-			<div>
-				<div id="postInGroup">
-					<img data-bind="attr:{src: user.thumbnail_url}">
-					<textarea  data-bind="textInput: userPost"></textarea>
-				</div>
-				<p><button data-bind="click:postInCurrentGroup">Post</button></p>			
+
+<div class="center-col">
+	<!-- ko if: currentGroup() -->
+		<div id="currentGroup">
+			<div id = "newFeed" data-bind = "fadeNewFeed:newFeedFlag, click:updateCurrentGroupFeed">
+				<i class="material-icons">file_upload</i>
+				<span>new stories</span>
+				<span data-bind="click: closeNewFeedDialog"><i class="material-icons">close</i></span>					
 			</div>
-		<!-- /ko -->
+			
+			<div id ="groupInfo" data-bind = "with: currentGroup">
+				<a data-bind = "text:name, attr:{href: url}"></a>
+			</div>
 
-		<div id="postList" data-bind = "foreach: feed">
+			<div id="postInGroup">					
+				<div>
+					<div>
+						<img class="avatar-round" data-bind="attr:{src: user.thumbnail_url}">
+					</div>					
+					<textarea placeholder="share a thought..." data-bind="hasFocus: userPostFocus, textInput: userPost"></textarea>
+				</div>					
+			</div><!--  POST IN GROUP DIV -->
+			
+			<div id="postInGroupControls">
+				<button class="btn-normal" type="button" data-bind="enable:userPost(), click:postInCurrentGroup">share</button>
+				<!-- <button class="btn-normal raised" type="button">raised</button> -->
+				<button class="btn-normal" type="button" data-bind="click:cancelUserPost">cancel</button> 
+			</div>
 
-			<div class="post-item">
+		</div><!--  END CURRENT GROUP DIV -->
+	<!-- /ko -->
+	
+	<div id="postWrapper">
+		
+		<div id="postListWrapper">
+			<!-- #postList + moreFeed button -->				
+		
+			<div id="postList" data-bind='template:{foreach: feed,
+                            						afterAdd: fadeInPost}'>		
+				<div class="post-item card" data-bind="attr:{id: post_id}">
 
-				<div class="post-item-poster">
-					<img class="poster-image" data-bind="attr: {src: poster_image}">
-					<div class="poster-info">
-						<p class="poster-name" data-bind="text: poster_name"></p>
-						<p>
-							<span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': created }"></span>
-						</p>
-					</div>
-				</div>
-
-				<div class="post-item-post" data-bind="visible: !editing()">
-					<p data-bind = "text: post"></p>
-					<!-- ko if: $root.user.id === user_id -->
-						<div class="post-controls">
-							<button type="button" data-bind="click: $root.editPost">Edit</button>
-							<button type="button" data-bind="click: $root.deletePost">Delete</button>
+					<div class="post-item-poster">
+						<img class="poster-image avatar-rect" data-bind="attr: {src: poster_image}">
+						<div class="poster-info">
+							<p class="poster-name" data-bind="text: poster_name"></p>
+							<p>
+								<span class="timestamp" data-bind="text: timestampText, attr:{'data-timestamp': created }"></span>
+							</p>
 						</div>
-				    <!-- /ko -->
-				</div> <!-- END POST-ITEM-POST -->
-				<!-- ko if: $root.user.id === user_id -->
+					</div>
+					
+					<!-- ko if: $root.user.id === user_id -->
+						
+						<div class="post-controls">
+							<div class="post-control-display" data-bind="click: $root.showPostControlDropdown">
+								<button type="button" class="btn-icon">
+									<i class="material-icons">more_vert</i>
+								</button>								
+							</div>
+							<div class="post-control-dropdown card">
+
+								<div class="post-control-dropdown-item center-content-vertically" data-bind="click: $root.editPost">
+									<i class="material-icons">mode_edit</i>
+									<span>edit</span>
+								</div>
+
+								<div class="post-control-dropdown-item center-content-vertically" data-bind="click: $root.deletePost">
+									<i class="material-icons">delete</i>
+									<span>delete</span>
+								</div>
+
+							</div><!-- END POST DROPDOWN -->
+
+						</div><!-- END POST CONTROLS -->
+
+					<!-- /ko -->
+
+					<div class="post-item-post" data-bind="visible: !editing()">
+						<p data-bind = "text: post"></p>
+					</div> <!-- END POST-ITEM-POST -->
+
+					<!-- ko if: $root.user.id === user_id -->
 						<div class="post-edit" data-bind="visible: editing()">
 							<textarea class="post-edit-input" data-bind="textInput: post"></textarea>
 							<div class="post-edit-controls">
-								<button type="button" data-bind="click: $root.saveEdit">Save</button>
-								<button type="button" data-bind="click: $root.cancelEdit">Cancel</button>
+								<button class="btn-normal" data-bind="click: $root.saveEdit">save</button>
+								<button class="btn-normal" data-bind="click: $root.cancelEdit">cancel</button>
 							</div>
 						</div>
-				<!-- /ko -->
-			</div><!-- END POST-ITEM -->
+					<!-- /ko -->
+				</div><!-- END POST-ITEM/CARD -->
+			</div><!-- END POST-LIST DIV -->
 
-		</div><!-- END POST-LIST DIV -->
-
-		<div>
-			<button data-bind="visible: moreFeed(), click: fetchMorePosts">Show more posts</button>
-		</div>
-		
-	</div><!-- END CENTER COL -->
-
-	<div class="right-col">
-		<div>
-			<h3>Hot Groups</h3>
-			<div data-bind="foreach: hotGroups">
-				<div>
-					<img data-bind="attr: {src: thumbURL, alt: name + ' group\'s thumbnail'}">
-					<div>
-						<p><a data-bind="text:name, attr: {href: url}"></a></p>
-						<p data-bind="text: membersText"></p>
-					</div>
-				</div>
+			<div id="moreFeed" data-bind="fadeMoreFeed: moreFeed">
+				<button class="btn-normal raised" type="button" data-bind="click: fetchOlderPosts">get more thoughts</button>
 			</div>
-		</div>
-	</div><!-- END RIGHT COL -->
-
-</div><!-- END SCROLLABLE COL -->
+		</div> <!-- END POST-LIST WRAPPER -->
 		
+		<div id="feedSpinner">
+			<div>
+				<i class='spinner icon-spin3 animate-spin'></i>
+			</div>			
+		</div>
+
+		<div class="no-content-filler card" id = "noGroupJoined" data-bind = "showFillerMessage: noGroupJoinedMessage">
+        	<div class="backdrop-icon">
+        		<i class="material-icons">person</i>
+        	</div>
+        	<div class="message">
+        		<span>Forever alone? Join a group.</span>
+        	</div>
+        </div>
+		
+		<div class="card no-content-filler" id = "noPost" data-bind = "showFillerMessage: noPostMessage">
+        	<div class="backdrop-icon">
+        		<i class="material-icons">no_sim</i>
+        	</div>
+        	<div class="message">
+        		<span>No posts in this group yet. Share a thought.</span>
+        	</div>
+		</div>
+	</div><!-- END POSTWRAPPER DIV -->	
+</div><!-- END CENTER COL -->	
+
+{% endblock %}
+
+{% block custom_content %}
+	<div>
+		<hot-groups></hot-groups>
+	</div>
 {% endblock %}

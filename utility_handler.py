@@ -24,12 +24,18 @@ class Handler(webapp2.RequestHandler):
 
 		self.user = None
 		self.account = False
+
+		# get user from the appengine's user API
 		logged_user = users.get_current_user()
+
 		if logged_user:
+			
+			# intialize user and user_id properties for rest of app
 			self.user = logged_user
 			self.user_id = logged_user.user_id()
-			self.user_key = ndb.Key(User, logged_user.user_id())
 
+			# check if user has an account and set the 'account' property to retured boolean
+			self.user_key = ndb.Key(User, logged_user.user_id())
 			self.account = check_user_warm_cache(self.user_key)
 
 	def write(self, *a, **kw):
@@ -43,12 +49,7 @@ class Handler(webapp2.RequestHandler):
 			params["status_url"] = users.create_logout_url('/')
 		else:
 			params["status_url"] = users.create_login_url('/feed')
-
-		# if self.account:
-		# 	params["navbar_user_image"] = get_thumbnail_url(self.account.image_url,
-		# 													NAVBAR_USER_THUMB,
-		# 													'user')
-		# 	params["navbar_display_name"] = self.account.display_name
+			
 		return t.render(params)
 
 	def render(self, template, **kw):
@@ -59,8 +60,8 @@ class Handler(webapp2.RequestHandler):
 		self.response.headers['Content-Type'] = 'application/json; charset=UTF-8'
 		self.write(json_txt)
 
-	def fail_ajax(self, response_code=400, response_text=None):
-		self.response.status_int = response_code;
+	def fail_ajax(self, response_text=None):
+		self.response.status_int = 400;
 		self.write(response_text)
 
 	def delayed_redirect(self, url=None, message=None, delay=None):
@@ -74,3 +75,4 @@ class Handler(webapp2.RequestHandler):
 		self.render('redirect.html', redirect_url = url,
 									redirect_message = message,
 									redirect_delay = delay)
+

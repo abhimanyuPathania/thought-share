@@ -15,10 +15,11 @@ define(['knockout',
 function(ko, $, helper, constants, htmlString) {
 
 function PostNotificationViewModel(params) {
-	var parent = null;
+	var parent = null; // reference to feedPageViewModel
 	if (params.parentRef && params.parentRef.feedPage){
 		parent = params.parentRef;
 	}
+	
     var self = this;
     var recentNtfTimestamp = 0;
     var POST_NTF_NUMBER_KEY = "ts-post-ntf-number";
@@ -37,6 +38,8 @@ function PostNotificationViewModel(params) {
 	//these belong to component viewModel
 	self.postNotifications = ko.observable();
 	self.unreadPostNotifications = ko.observable(0);
+	// every time we update unread number, also update page title
+	self.unreadPostNotifications.subscribe(updatePageTitle);
 
 	// start polling
 	doPostNotificationsPoll();
@@ -220,6 +223,29 @@ function PostNotificationViewModel(params) {
 		}// end outer ntfArray loop
 		return result;
 	};
+
+	function updatePageTitle() {
+		// to be called after updating the unreadPostNotification observable;
+
+		var number = self.unreadPostNotifications();
+		var title = $(document).prop("title");
+		var pageTitle; // title without notification number
+		var index = title.indexOf(")");
+
+		if (index === -1) {
+			pageTitle = title;
+		} else {
+			pageTitle = title.substring(index + 1);
+		}
+
+		if (number === 0) {
+			$(document).prop("title", pageTitle);
+		} else {
+			var updatedTitle = "(" + number + ")" + " " + pageTitle;
+			$(document).prop("title", updatedTitle);
+		}
+
+	}
 
 	// model for post notifications
     function PostNotification(n){

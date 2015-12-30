@@ -15,7 +15,7 @@ function navbarModularViewModel(params) {
 
 	var self = this;
 
-	//this goes ripling down to the post notifications component
+	//this goes ripling down to the post notifications and request components
 	self.parentRef = params.parentRef;
 
 	//register the sub-components
@@ -24,6 +24,12 @@ function navbarModularViewModel(params) {
 	ko.components.register('group-search', searchCompObj);
 	
 	self.navbarData = ko.observable();
+
+	//fetch navbar-data
+	fetchNavbarData();
+
+	//start the update timestamp timer
+	updateTimstamps();
 
 	//add click handler to the profile dropdown
 	self.toggleProfileDropdown = function(obj, event) {
@@ -37,6 +43,11 @@ function navbarModularViewModel(params) {
 		/*test if the click is coming from a '.dropdown' element
 		  or its descendent and ignore those events*/
 		if (!$(event.target).closest('.dropdown').length) {
+			
+			//fix the dropdown close on removal of request complete button
+			if ($(event.target).attr("data-dropdown-hold")){
+				return;
+			}
 	    	// Hide the menus.
 	    	// cannot cache this selector due to web components issue
 	    	$(".dropdown-wrapper").removeClass("show");
@@ -44,11 +55,6 @@ function navbarModularViewModel(params) {
 
 	}); // end event handler
 
-	//fetch navbar-data
-	fetchNavbarData();
-
-	//start the update timestamp timer
-	updateTimstamps();
 
 	function fetchNavbarData(){
 		$.ajax({
@@ -62,6 +68,8 @@ function navbarModularViewModel(params) {
 				}
 				self.navbarData(new NavbarData(resp));
 				if (self.parentRef && self.parentRef.userProfileViewModel){
+					//the navbarData observable in userProfileViewModel will
+					//refer to the NavbarData object created above
 					self.parentRef.navbarData(self.navbarData());
 				}
 			},

@@ -5,32 +5,55 @@
  -->
 
 <div class="dropdown-display">
-	<button data-bind = "click: showRequests">Show Requests</button>
-	<span data-bind="text: unreadRequestNotifications, visible: unreadRequestNotifications() > 0"></span>
+	<div data-bind = "click: showRequests" class="center-content-vertically">
+		<i class="material-icons">email</i>		
+	</div>
+
+	<div class="unread-notification-number" data-bind="visible: unreadRequestNotifications()>0 , click: showRequests">
+		<span data-bind="text: unreadRequestNotifications"></span>
+	</div>
 </div>
 
 <div class="dropdown-wrapper">
 	<b class="callout-notch callout-notch-border"></b>
 	<b class="callout-notch"></b>
 	<div class="dropdown-items-heading">
-		<h4>Requests</h4>
+		<p>Requests</p>
 	</div>
 	
 	<div class="dropdown-items-list">
 		<!-- ko foreach: requestNotifications -->
-        <div class="dropdown-item">
-
-			<img class="dropdown-item-image" data-bind="attr:{src: user_image, alt:user_name + '\'s profile picture'}">
-			<div class="dropdown-item-message">
-				<p data-bind="text: text"></p>
-				<p><button data-bind = "click: $component.completeRequest, visible:complete === false">Accept</button></p>
+	        <div class="dropdown-item">
+				
+				<div class="request-content center-content-vertically">
+					<img class="dropdown-item-image avatar-rect" data-bind="attr:{src: user_image}">
+					<div class="dropdown-item-message">
+						<span data-bind="html: text"></span>
+					</div>
+				</div>
+				
+				<div class="request-control">
+					<div class="checked-icon" data-bind="visible: complete">
+						<i class="material-icons">check_circle</i>
+					</div>
+					<button type="button" class="btn-icon" data-dropdown-hold="true" data-bind = "click: $component.completeRequest, attr:{title: 'add ' + user_name},
+					visible: !complete">
+						<i class="material-icons">person_add</i>
+					</button>
+				</div>
 			</div>
-		</div>
-    <!-- /ko -->
+    	<!-- /ko -->
+
+    	<!-- ko ifnot: requestNotifications().length -->
+    		<div class="filler">
+    			<i class="material-icons">assignment_turned_in</i>
+    			<p>no pending requests</p>
+    		</div>
+    	<!-- /ko -->
 	</div>
 	
 	<div class="dropdown-items-footer">
-		<a href="/view-profile#requests">View all</a>
+		<a href="/view-profile#requests" class="link-text-shadow">View all</a>
 	</div>
 
 </div>

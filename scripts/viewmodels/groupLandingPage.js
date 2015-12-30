@@ -1,121 +1,143 @@
 
-define(['jquery', 'helper', 'constants'], function($, helper, constants) {
+define(['jquery',
+		'enableForms',
+		'constants',
+		'velocity',		
+		'velocity-ui',],
+
+function($, enableForms, constants, Velocity) {
    
 return function() {
 
 var group = JSON.parse($("#groupData").attr("data-groupJSON"));
-var descriptionCharLimit = constants.GROUP_DESCRIPTION_CHAR_LIMIT;
 var actionURL = {
-	"join": 	   "/ajax/join-group/" + group.id,
-	"leave": 	   "/ajax/leave-group/" + group.id,
-	"request":     "/ajax/admin-group/" + group.id,
-	"editgroup":   "/edit-group/" + group.id
+	"join": 	   "/ajax/join-group",
+	"leave": 	   "/ajax/leave-group",
+	"request":     "/ajax/admin-group"
 };
 
 var actionButtons = $(".action");
-var editForm = $("#editForm");
 actionButtons.click(doButtonAction);
 
-// if the page has a group edit form
-if (editForm.length) {
-	var textarea = $("textarea", editForm);
-	var counterSpan = $("#descCount");
-	var deleteImageButton = $("#deleteImage");
+if (group.allowed_to_edit) {
+	var top = $(".page-content");
 
-	// attach the submit handler for client side checking
-	editForm.submit(submitEditForm);
-	textarea.on("keyup", updateCharacterCount);
+	var descriptionCharLimit = constants.GROUP_DESCRIPTION_CHAR_LIMIT;
+	var editForm = $("#editForm");
+	var descriptionFieldWrapper = $(".material-description-field", editForm);
+	var textarea = $("textarea", descriptionFieldWrapper);
+	var descriptionGuideWrapper = $(".guide", descriptionFieldWrapper);
+	var groupDescriptionTag = $("#groupDescriptionDisplay");
+	var currentDescription =  groupDescriptionTag.text();
+	var counterSpan = $(".description-counter");
+	var groupEditModalCloseButton = $(".simple-modal-close", editForm);
+	var groupEditSaveButton = $(".save-group-edit", editForm);
+
+
+	var imageDeleteModal = $("div[data-modal-id='confirmLeadingImageDeleteModal']");
+	var imageUploadModal = $("div[data-modal-id='uploadImageModal']");
+	var leadingImageWrapper = $(".leading-image-wrapper");
+	var imageMetadata = {"url" : constants.DEFAULT_GROUP_IMAGE,
+						 "image_type": "group",
+						 "group_id": group.id
+						}
+
+	enableForms.setupInputGuidesAndLabels(textarea);
+	enableForms.setupDescriptionField(descriptionFieldWrapper);
+	enableForms.setupLeadingImage(imageUploadModal, imageDeleteModal, leadingImageWrapper, imageMetadata);
 	
-	// add additional function to modal trigger for clearing form/error fields
-	$("button.simple-modal-trigger").click(function(){
-		editForm[0].reset();
-		$("#error", editForm).text("");
-		counterSpan.text(descriptionCharLimit);
-	});
+	editForm.submit(submitEditForm);
+	counterSpan.text(descriptionCharLimit);
+	groupEditModalCloseButton.click(groupEditModalRefresh);
 
-	//
-	if (deleteImageButton.length) {
-		deleteImageButton.click(deleteGroupImage);
-	}
-}
-
-
-function deleteGroupImage() {
-	var error = $("#error", this);
-
-	$.ajax({
-		url: "/ajax/delete-image",
-		type: "POST",
-		dataType:"json",
-		data:{"image_type": "group",
-			  "group_id": group.id
-			},
-		success: function(resp){
-			if (!resp){
-				return false;
-			}
-
-			// update the group image elements on the page and close model
-			console.log("image deleted");
-
-			$("img.group-cover-image").attr("src", "../images/defaults/group.png");
-			$("button.simple-modal-close", editForm).triggerHandler("click");
-
-			//update the default image message and remove the delete image button
-			$("#defaultImageMessage").text("None set. Using default");
-			$("#deleteImage").remove();
-
-			return;
-		},
-
-		error: function(xhr) {
-			error.text("something went wrong, please try later");
-			return false;
+	//enable group submit button on correct input
+	textarea.on("input", function() {
+		var description = $.trim(textarea.val());
+		if (description.length && description.length <= descriptionCharLimit) {
+			groupEditSaveButton.prop("disabled", false);
+		} else {
+			groupEditSaveButton.prop("disabled", true);
 		}
-
-
 	});
-}
+};
 
+function groupEditModalRefresh() {
+	//reset textarea
+	editForm[0].reset();
+
+	//reset the label
+	textarea.removeClass("has-value");
+
+	//remove error and hide guide
+	if (descriptionFieldWrapper.hasClass("error")) {
+		descriptionFieldWrapper.removeClass("error");
+		descriptionGuideWrapper.css("opacity", 0);
+	}
+	
+	//reset counter
+	counterSpan.text(descriptionCharLimit);
+
+	//disable the edit save button
+	groupEditSaveButton.prop("disabled", true);
+
+	//reset textarea height
+	textarea.css("height", "");
+}
 
 function submitEditForm(e){
+	e.preventDefault();
 
 	var description = $.trim(textarea.val());
-	var file = $("input[type=file]", this).prop("files");
-	var error = $("#error", this);
-	var cancelSubmission = false;
-
-	if (!(description || file.length)){
-		// blank submission
-		cancelSubmission = true;
-		error.text("Atleast enter a description or choose an image");
-	}
-
-	if (file.length > 1) {
-		cancelSubmission = true;
-		error.text("Please select only one image");
-	}
-
-	if (description.length > descriptionCharLimit) {
-		cancelSubmission = true;
-		error.text("description exceeds"+ descriptionCharLimit +"characters");
-	}
-
-	if (file.length){
-		var checkFile = helper.checkImageFile(file);
-		if (!checkFile.ok) {
-			error.text(checkFile.errorStr);
-			cancelSubmission = true;
-		}
-	}
-
-	if (cancelSubmission) {
-		e.preventDefault();
+	// invalid input close modal and return
+	if (!description.length || description.length > descriptionCharLimit || 
+		(description === currentDescription)) {
+		
+		groupEditModalCloseButton.trigger("click");
+		groupEditModalRefresh();
 		return false;
 	}
 
-	// send the form
-	return true;
+	$.ajax({
+		url: "/ajax/edit-group",
+		type: "GET",
+		dataType: "json",
+		data: {description: description,
+				group_id: group.id
+			},
+
+		beforeSend: function() {
+			groupEditSaveButton.prop("disabled", true);
+		},
+
+		success: function(resp) {
+			if (!resp) {
+				return;
+			}
+
+			//update group description displayed
+			groupDescriptionTag.text(description);
+
+			//update current description variable
+			currentDescription = description;
+
+			//close group edit modal
+			groupEditModalCloseButton.trigger("click");
+
+			//scroll to top to show updated description
+			top.velocity("scroll", {
+				duration: 700,
+				offset: -50
+			});
+
+			//refresh modal for next edit
+			groupEditModalRefresh();
+		},
+
+		error: function() {
+			console.log("ERROR:", "submitEditForm");
+		}
+	});
+	
 }
 
 function doButtonAction() {
@@ -126,6 +148,7 @@ function doButtonAction() {
 		url: actionURL[clickAction],
 		type: "GET",
 		dataType: "json",
+		data: {group_id: group.id},
 
 		beforeSend: function(){
 			button.prop("disabled", true);
@@ -143,36 +166,42 @@ function doButtonAction() {
 					window.location.reload(true);
 				} else{
 					//display the message
-					button.text("Join request sent");
+					var element = '<span class="status-message hidden">Join request sent.</span>'
+					replaceActionButton(button, element);
 				}
 			}
 
 			if (clickAction == "request"){
-				button.text("Adminship request sent");
+				var element = '<span class="status-message hidden">Adminship request sent.</span>'
+				replaceActionButton(button, element);
+				//button.text("Adminship request sent.");
 			}
 		},
 
 		error: function(){
-			console.log("something went wrong");
-		},
+			console.log("ERROR:", "doButtonAction");
+		}
+		
+	});
+}
 
-		complete: function(xhr) {
-			if (xhr.status === 200) {
-				if(clickAction === "request" ||(clickAction === "join" && group["private"])){
-					//don't re-enable the button; just return
-					return;
+function replaceActionButton(button, replacement) {
+	button.velocity("transition.expandOut", {
+		duration: 200,
+		complete: function() {
+			button.replaceWith(replacement);
+			var statusMessageSpan = $("span.status-message.hidden");
+			statusMessageSpan.velocity("transition.expandIn", {
+				duration: 300,
+				display: "inline-flex",
+				complete: function() {
+					statusMessageSpan.removeClass("hidden");
 				}
-			}
-
-			//other wise re-enable the button
-			button.prop("disabled", false);
+			});
 		}
 	});
 }
 
-function updateCharacterCount() {
-	counterSpan.text(helper.getCharLeft(textarea.val())); 
-}
 
 };// end anon function that will be returned
 

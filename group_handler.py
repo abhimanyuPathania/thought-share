@@ -44,24 +44,24 @@ class CreateGroupHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 
 		data['cover_image_blob'] = cover_image_blob
 		try:
-			Group.create_group(**data)	
+			new_group_key = Group.create_group(**data)	
 		# invalid group name, or group with the same name already exsits
 		except (BadUserInputError, EntityExistsError) as e:
-			image_upload_url = blobstore.create_upload_url('/create-group')
-			return self.render('create_group.html', error = e.value,
-													form_action = image_upload_url)
+			#delete the blob if uploaded
+			if cover_image_blob:
+				blobstore.delete([cover_image_blob.key()])
+			return self.redirect("/create-group")
+
 		#if blob is too big or not an image type
 		except BadImageError as e:
 			#delete the incorrect blob uploaded
 			blobstore.delete([cover_image_blob.key()])
 
-			#re-create upload url and render back the form
-			image_upload_url = blobstore.create_upload_url('/create-group')
-			return self.render('create_group.html', error = e.value,
-													form_action = image_upload_url)
-		#!!!!!catch datastore put exceptions here
+			return self.redirect("/create-group")
 
-		return self.redirect('/feed')
+		#!!!!!catch datastore put exceptions here
+		group_url = '/group/' + new_group_key.id()
+		return self.redirect(group_url)
 
 class GroupLandingPageHandler(Handler):
 	# /group/(group_id)
@@ -123,8 +123,9 @@ class GroupLandingPageHandler(Handler):
 		group_data["admin"] = admin
 		group_data["render_edit"] = allowed_to_edit
 
-		if allowed_to_edit:
-			group_data["form_action"] = blobstore.create_upload_url('/edit-group/' + group_id)
+		# if allowed_to_edit:
+			#group_data["form_action"] = blobstore.create_upload_url('/edit-group/' + group_id)
+			#group_data["form_action"] = blobstore.create_upload_url('/ajax/upload-image')
 
 		# add flags to render join/request admin/leave buttons
 		# if group is private, check if user has any join/admin requests
@@ -191,47 +192,45 @@ class GroupLandingPageHandler(Handler):
 		#set seperate group_json to be used by JavaScript
 		group_json = {"name": group_data["name"],
 					  "id": group_data["id"],
-					  "private": group_data["private"]}
+					  "private": group_data["private"],
+					  "allowed_to_edit": allowed_to_edit}
 		#render group landing page
 		return self.render('group_landing_page.html', g = group_data,
 													  group_json = json.dumps(group_json))
 
 class GroupEditHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
-	# /edit-group/(group_id)
+	# /ajax/edit-group
 
-	def post(self, group_id):
+	def get(self):
 		if not self.account:
 			return self.redirect('/')
 
-		page_url = '/group/' + group_id
 		description = self.request.get('description')
-		try:
-			blob = self.get_uploads()[0]
-		except IndexError:
-			blob = None
+		group_id = self.request.get('group_id')
 
-		if not description and not blob:
+		if not description or description.isspace():
 			#blank submission
-			return self.redirect('/feed')
+			return self.fail_ajax();
 
 		try:
-			Group.edit_group(self.user_key, group_id, description, blob)
-		#if blob is too big or not an image type
-		except BadImageError as e:
-			#delete the incorrect blob uploaded
-			blobstore.delete([blob.key()])
-			# since we are not using ajax, just redirect away from group page
-			return self.redirect('/feed')
+			edit_operation = Group.edit_group(self.user_key, group_id, description)	
+		except:
+			pass
 
-		# same redirect causes page reload
-		return self.redirect(page_url)
+		if not edit_operation:
+			return self.fail_ajax();
+
+		return self.render_json(True)
+
 
 class GroupJoiningHandler(Handler):
-	# /ajax/join-group/(group_id)
+	# /ajax/join-group
 
-	def get(self, group_id):
+	def get(self):
 		if not self.account:
 			return self.fail_ajax()
+
+		group_id = self.request.get('group_id')
 
 		user_key = self.user_key
 		group_key = ndb.Key(Group, group_id)
@@ -243,11 +242,13 @@ class GroupJoiningHandler(Handler):
 			return self.fail_ajax()
 
 class GroupLeavingHandler(Handler):
-	# /ajax/leave-group/(group_id)
+	# /ajax/leave-group
 
-	def get(self, group_id):
+	def get(self):
 		if not self.account:
 			return self.fail_ajax()
+
+		group_id = self.request.get('group_id')
 
 		user_key = self.user_key
 		group_key = ndb.Key(Group, group_id)
@@ -260,11 +261,13 @@ class GroupLeavingHandler(Handler):
 			return self.fail_ajax()
 
 class GroupRequestAdminHandler(Handler):
-	# /ajax/admin-group/(group_id)
+	# /ajax/admin-group
 
-	def get(self, group_id):
+	def get(self):
 		if not self.account:
 			return self.fail_ajax()
+
+		group_id = self.request.get('group_id')
 
 		user_key = self.user_key
 		group_key = ndb.Key(Group, group_id)
@@ -307,6 +310,7 @@ class GroupPostHandler(Handler):
 			post_key, post_data = GroupPost.create_group_post(group_id, group.name,
 															  self.user_id, user_post)
 		except BadUserInputError as e:
+			# raised on blank posts
 			return self.fail_ajax()
 
 		#create notification content

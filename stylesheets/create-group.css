@@ -1,0 +1,187 @@
+
+.user-content{
+	width: 100%;
+	float: none;
+	margin-right: 0px;
+}
+
+.custom-content{
+	display: none;
+}
+
+.page-content .material-icons{
+	color: hsl(0,0%,46%);
+}
+
+#formWrapper{
+	max-width: 400px;
+	margin: 0px auto;
+	margin-bottom: 15px;
+
+	padding: 24px 0px 24px;
+
+	border-radius: 4px;
+}
+
+#formWrapper .padding-wrapper{
+	padding: 0px 24px;
+}
+
+#formWrapper h4{
+	margin-bottom: 40px;
+	padding-left: 24px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid #F1F1F1;
+}
+
+/* FORM FIELD MARGINS */
+.form-field{
+	margin-bottom: 28px; 
+}
+
+.form-field:last-of-type{
+	margin-bottom: 0px;
+}
+
+
+.form-field:nth-of-type(1) {
+	/*group name div*/
+	margin-bottom: 40px;
+}
+
+.form-field:nth-of-type(2){
+	/* description div */
+	margin-bottom: 24px;
+}
+
+.form-field:nth-of-type(4){
+	/* make private div */
+	margin-bottom: 40px;
+}
+
+
+/* ===== NAME UPLOAD FIELD ===== */
+
+#nameAvailable{
+	display: none;
+	/* push the, aligned at center, flex item upwards and align with name input*/
+	position: absolute;
+	right: 0;
+	/* additional 4px to adjust padding given to input which moves the label */
+	top: -16px;
+}
+
+#nameAvailable{
+	font-size: 12px;
+	color: hsl(0,0%,46%);
+}
+
+#nameAvailable i{
+	margin-right: 5px;
+}
+
+.material-name-field.error #nameAvailable,
+.material-name-field.error #nameAvailable .material-icons{
+	color: #e74c3c;
+	transition: color 0.22s ease;
+}
+
+
+/* ===== IMAGE UPLOAD FIELD ===== */
+
+
+.material-image-upload label{
+	/* to  match the photo button and checkbox */
+	width: 100px;
+}
+
+.material-image-upload label{
+	margin-right: 10px;
+}
+
+
+.material-image-upload .image-preview img{
+	width: 40px;
+	height: 40px;
+}
+
+
+/* ===== MAKE PRIVATE FIELD ===== */
+
+#makePrivate {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+#makePrivate label{
+	font-size: 16px;
+	color: hsl(0, 0%, 70%);
+
+	/* to  match the photo button and checkbox add 6px to upper margin */
+	margin-right: 16px;
+
+	/* fix the flicker while animating */
+	padding-top: 6px;
+	padding-bottom: 6px;
+	
+	/* match the name, description labels */
+	padding-left: 4px;
+
+	/* to  match the photo button and checkbox */
+	width: 100px;
+}
+
+.active#makePrivate label{
+	color: hsl(0,0%,46%);
+	transition: color 0.3s ease;
+}
+
+#makePrivate .material-icons,
+#makePrivate .status-icons span,
+#makePrivate .checkbox-icons span{
+	display: block;
+}
+
+#makePrivate .checkbox-icons .material-icons{
+	cursor: pointer;
+}
+
+#makePrivate .status-icons .material-icons{
+	font-size: 32px;
+	cursor: context-menu;
+}
+
+#makePrivate .checkbox-icons span.checked,
+#makePrivate .status-icons span.private{
+	display: none;
+}
+
+#makePrivate input[type="checkbox"] {
+	display: none;
+}
+
+
+.form-control-wrapper{
+	border-top: 1px solid #F1F1F1;
+	padding: 16px 24px 0px 24px;
+}
+
+#error{
+	background-color: #F1F1F1;
+	color: #e74c3c;
+	margin-bottom: 8px;
+	padding: 8px;
+	text-align: center;	
+
+	display: none;
+}
+
+#submit{
+	margin-bottom: 0px;
+	text-align: right;
+}
+
+#submit button{
+	padding: 0 8px;
+}

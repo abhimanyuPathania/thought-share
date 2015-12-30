@@ -1,0 +1,249 @@
+
+#group{
+	display: flex;
+	/* align-items: flex-start; */
+
+	padding: 24px 16px;
+}
+
+
+/* leading image styles in base navbar */
+
+
+
+#groupDescriptionStatus{
+	flex: 1;
+
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+#groupDescriptionStatus h4{
+	margin-bottom: 16px;
+	font-weight: 500;
+}
+
+#groupControls {
+	text-align: right;
+	margin-top: 8px;
+	
+	/* same as height of buttons and .status-message spans */
+	min-height: 30px;
+}
+
+#groupControls .status-message {
+	height: 30px;
+	padding: 0px 8px;
+	color: #e74c3c;
+	border: 1px solid;
+	border-radius: 2px;
+
+	display: inline-flex;
+	align-items:center;
+}
+
+#groupControls .status-message.hidden {
+	opacity: 0;
+}
+
+#groupControls .btn-normal,
+.group-edit-control .btn-normal{
+	padding: 0px 8px;
+}
+
+#groupControls button,
+#groupControls .status-message{
+	margin-right: 12px;
+}
+
+#groupControls button:last-child,
+#groupControls .status-message:last-child {
+	margin-right: 0px;
+}
+
+
+/* ===== GROUP INFO LAYOUT ===== */
+.group-info-wrapper {
+	margin-top: 15px;
+	padding-bottom: 15px;
+}
+
+.group-details{
+	width: 25%;
+	float: left;
+}
+
+.group-posts{
+	width: calc(75% - 10px);
+	float: right;
+}
+
+/* ===== GROUP STATUS CARD ===== */
+
+.group-status{
+	margin-bottom: 10px;
+	padding: 16px;
+}
+
+.group-status .group-type {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+
+.group-status .group-type span .material-icons{
+	display: block; 
+}
+
+.group-members {
+	margin-top: 8px;
+	color: hsl(0,0%,46%);
+}
+
+
+/* ===== GROUP CREATOR CARD ===== */
+.group-creator{
+	padding: 16px;
+}
+
+.group-creator h6{
+	margin-bottom: 12px;
+}
+
+
+.group-creator-details span{
+	font-size: 16px;
+}
+
+.group-creator-image{
+	margin-right: 8px;
+}
+
+.group-creator-image img{
+	display: block;
+}
+
+.group-edit-control{
+	margin-top: 12px;
+	text-align: center;
+}
+
+
+/* ===== GROUP POSTS CARD ===== */
+.group-posts h5 {
+	padding: 24px 16px 16px 16px;
+	border-bottom: 1px solid #F1F1F1;
+	margin-bottom: 24px;
+}
+
+.group-posts h5 .material-icons{
+	margin-right: 8px;
+}
+
+.post-padding-wrapper{
+	padding: 0px 16px;
+}
+
+.recent-post {
+	padding-top: 24px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid hsl(0,0%,80%);
+}
+
+.recent-post:first-child{
+	padding-top: 0px;
+}
+
+.recent-post:last-child{
+	border-bottom: 0px;
+}
+
+.recent-poster-info{
+	display: flex;
+	align-items: flex-start;
+
+	margin-bottom: 10px;
+}
+
+.recent-poster-image{
+	margin-right: 16px;
+}
+
+.recent-poster-image img{
+	display: block;
+}
+
+.recent-poster-name p {
+	font-weight: 500;
+	font-size: 16px;
+}
+
+/* Filler message styles */
+
+.group-info-wrapper .post-filler.no-post {
+	/* to match the height of group details left column */
+	padding: 23px 0px;
+}
+
+.group-info-wrapper .post-filler.private {
+	/* to match the height of group details left column */
+	padding: 26px 0px;
+}
+
+.group-info-wrapper .post-filler.private .material-icons {
+	font-size: 96px;
+}
+
+
+/* ===== GROUP EDIT MODAL ===== */
+
+#editForm .material-description-field {
+	padding: 24px 16px;
+	margin-bottom: 8px;
+	max-height: 480px;
+	overflow: auto;
+}
+
+
+
+
+/* simple modal media queries. These are contain desktop size styles */
+@media screen and (min-width: 768px){
+
+	/* ===== GROUP EDIT MODAL ===== */
+	
+	div[data-modal-id = "editGroupModal"] .modal-content {
+		/*remove defaults*/
+		top:auto;
+		left:auto;
+		position: static;
+		-ms-transform: none;
+		-webkit-transform: none;
+			transform: none;
+
+		/*add your own*/
+		margin: 0px auto;
+		margin-top: 65px;
+		width: 500px;
+	}
+
+	div[data-modal-id = "editGroupModal"] .modal-body{
+		padding: 0px;
+	}
+
+}
+
+@media screen and (min-width: 1024px){
+	
+	/* ===== GROUP EDIT MODAL ===== */
+
+	div[data-modal-id = "editGroupModal"] .modal-content{
+		width: 500px;
+	}
+}
+
+
+
+

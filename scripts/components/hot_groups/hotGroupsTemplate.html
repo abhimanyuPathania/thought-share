@@ -1,0 +1,18 @@
+
+<div class="widget card" id="hotGroups">
+	<h5 class="center-content-vertically">
+		<i class="material-icons">whatshot</i>
+		<span>Hot Groups</span>
+	</h5>
+	<div data-bind="foreach: hotGroups">
+		<div class="widget-item center-content-vertically">
+			<div class="group-image">
+				<img class="avatar-rect" data-bind="attr: {src: thumbURL}">
+			</div>		
+			<div class="group-info">
+				<span><a data-bind="text:name, attr: {href: url}"></a></span>
+				<span data-bind="text: membersText"></span>
+			</div>
+		</div>
+	</div>
+</div>

@@ -1,0 +1,491 @@
+
+/* same core layout as done on feed page */
+
+/*  1200px is the total width available 
+	refer .center-container in base-navbar.css
+*/
+
+.fixed-col{
+	/* card */
+	position: fixed;
+	width: 260px;
+
+	/* 50px + 15px + 15px*/
+	/* 44px(navbar height), 15px is margin top, bottom */
+	height: calc(100% - ( 50px + 30px ));
+	/*min-height: 180px;*/
+	overflow: auto;
+}
+
+
+.center-col{
+	/* to place the mainSpinner */
+	position: relative;
+
+	/* 80% of 1200px is size of user-content div
+	   Subtract 260px size for fixed-col and 20px for two 10px gutters */
+	width: calc((1200px * 0.80) - 260px - 20px);
+	float: right; 
+	padding-bottom: 15px;
+}
+
+
+
+/* ===== Leading image wrapper ===== */
+/* base styles in base-navbar.css */
+
+.leading-image-wrapper{
+	width: 200px;
+	height: 200px;
+
+	margin: 24px auto 16px;
+	/* margin-top: 24px; */
+}
+
+.leading-image-wrapper .leading-image {
+	position: relative;
+}
+
+.leading-image img{
+	border-radius: 50%;
+}
+
+.leading-image .leading-image-controls {
+	border-radius: 4px;
+}
+
+
+
+#userInfo {
+	padding: 0px 16px;
+	text-align: center;
+}
+
+#userInfo h3 {
+	margin-bottom: 12px;
+}
+
+#userInfo p{
+	font-size: 16px;
+	margin-bottom: 24px;
+}
+
+.edit-user-control {
+	text-align: center;
+	border-top: 1px solid #F1F1F1;
+	padding-top: 12px;
+}
+
+.edit-user-control button {
+	padding: 0px 8px;
+}
+
+
+/* ===== GROUP EDIT MODAL ===== */
+
+#editForm .material-name-field {
+	padding: 24px 16px;
+	padding-bottom: 16px;
+	margin-bottom: 8px;
+	max-height: 480px;
+	overflow: auto;
+}
+
+#editForm .material-name-field .guide span {
+	text-align: center;
+	padding: 4px 8px;
+}
+
+
+/* ===== TABS ===== */
+
+#centerColContentWrapper {
+	/* tabs + tabContent */
+	display: none;
+}
+
+#tabContent{
+	overflow: hidden;
+}
+
+#mainSpinner {
+	position: absolute;
+	width: 100%;
+	top: 0;
+	left: 0;
+
+	padding-top: 100px;
+	text-align: center;
+}
+
+#mainSpinner i {
+	font-size:48px;
+	color: hsl(0,0%,46%);
+}
+
+#tabWrapper{
+	/* for abs positioned tabBar */
+	position: relative;
+	padding: 0px 24px;
+	box-shadow:  0px 2px 12px 0px rgba(0, 0, 0, 0.2);
+}
+
+#tabs{
+	text-transform: uppercase;
+	height: 48px;
+	display: flex;
+}
+
+#tabs span {
+	text-align: center;
+	font-weight: 500;
+	line-height: 48px;
+	cursor: pointer;
+
+	/* equal width of tabs */
+	flex: 1;
+
+}
+
+#tabBar{
+	position: absolute;
+	left: 0;
+	bottom: 0;
+
+	opacity: 0;
+	height: 2px;
+	border-radius: 1px;
+	background-color: hsl(0,0%,46%)
+}
+
+
+.content-spinner {
+	padding-top: 24px;
+	padding-bottom: 48px;
+	text-align: center;
+}
+
+.content-spinner i {
+	
+	font-size: 28px;
+	color: hsl(0,0%,46%);
+}
+
+
+
+.tab-content-header{
+	padding: 24px 16px;
+}
+
+.tab-content-header h5 i {
+	margin-right: 8px;
+}
+
+.tab-content-header h5 span{
+	text-transform: capitalize;
+}
+
+.tab-content-wrapper {
+	/* while tab spinner is visible the content is hidden until AJAX request returns */
+	display: none;
+	opacity: 0;
+
+	padding: 0px 16px 24px; /*top - left,right - bottom*/
+}
+
+
+
+/* ===== GROUP CONTENT ===== */
+
+.view-profile-group-item-wrapper {
+	/* display flex is set by the functions that handle animations */
+	display: -webkit-flex;
+	display: flex; 
+
+	-webkit-flex-flow: row wrap;
+	flex-flow: row wrap; 
+}
+
+.view-profile-group-item {
+	/* border: 1px solid hsl(0, 0%, 80%); */
+
+	box-shadow: 0px 2px 4px 1px rgba(0, 0, 0, 0.15);
+	border-radius: 2px;
+	
+	/* set flex basis for 8px gutters between flex items */
+	-webkit-flex: 0 1 calc(50% - 4px);
+	flex: 0 1 calc(50% - 8px);
+	margin-bottom: 20px;
+
+	display: -webkit-flex;
+	display: flex;
+
+	min-width: 0px;
+	transition: background-color 0.22s ease;
+}
+
+#groupsContent .tab-content-wrapper{
+	/*Bottom spacing to tab content wrapper for
+	groups content is added as margin bottom to last group item.*/
+	padding-bottom: 0px;
+} 
+.view-profile-group-item:last-child{
+	margin-bottom: 24px;
+}
+ 
+.view-profile-group-item:nth-child(odd){
+	margin-right: 16px;
+}
+
+.view-profile-group-item:hover {
+	background-color: hsl(0,0%,96%);
+}
+
+.view-profile-group-item img {
+	display: block;
+	border-top-right-radius: 0px;
+	border-bottom-right-radius: 0px;
+}
+
+
+.view-profile-group-data {
+	display: -webkit-flex;
+	display: flex;
+	
+	-webkit-flex-direction: column; 
+    flex-direction: column;
+
+    -webkit-justify-content: space-between; 
+    justify-content: space-between;
+
+    -webkit-flex: 1;
+	flex: 1;
+
+	padding:8px 8px 12px 16px;
+	min-width: 0px;
+}
+
+.view-profile-group-name {
+	display: -webkit-flex;
+	display: flex;
+
+	-webkit-justify-content: space-between; 
+    justify-content: space-between;
+
+    -webkit-align-items: center; 
+  	align-items: center;
+
+  	min-width: 0px;
+}
+
+.view-profile-group-name a {
+	min-width: 0px;
+	font-weight: 500;
+}
+
+.view-profile-group-name span{
+	margin-left: 8px;
+}
+
+.view-profile-group-members {
+	font-size: 12px;
+	color: hsl(0, 0%, 46%);
+}
+
+.view-profile-group-tag {
+	font-size: 10px;
+	border: 1px solid hsl(0, 0%, 60%);
+	text-transform: uppercase;
+
+	border-radius: 2px;
+	margin-right: 5px;
+	padding: 2px 8px;
+}
+
+
+
+/* ===== POST CONTENT ===== */
+
+.view-profile-post-item{
+	padding-top: 20px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid hsl(0,0%,80%);
+}
+
+.view-profile-post-item:first-child{
+	padding-top: 0px;
+}
+
+.view-profile-post-item:last-child {
+	padding-bottom: 0px;
+	border-bottom: 0px;
+}
+
+.view-profile-post-details {
+	display: -webkit-flex;
+	display: flex;
+
+ 	-webkit-justify-content: space-between; 
+    justify-content: space-between; 
+
+    -webkit-align-items: center; 
+  	align-items: center;
+}
+
+.view-profile-post-details strong{
+	margin-right: 8px;
+}
+
+.view-profile-post-details button {
+	margin-left: 8px;
+}
+
+.view-profile-post-details .btn-icon .material-icons{
+	font-size: 16px;
+	color: hsl(0,0%,46%);
+}
+
+
+
+/* ===== NOTIFICATIONS CONTENT ===== */
+
+.view-profile-notification-item {
+	padding-bottom: 16px;
+	padding-top: 24px;
+	border-bottom: 1px solid hsl(0,0%, 80%);
+}
+
+.view-profile-notification-item:first-child {
+	padding-top: 0px;
+}
+
+.view-profile-notification-item:last-child {
+	padding-bottom: 0px;
+	border-bottom: 0px;
+}
+
+.view-profile-norification-image {
+	margin-right: 16px;
+}
+
+.view-profile-norification-image img{
+	display: block;
+}
+
+.tab-content-update-button {
+	text-align: center;
+	margin-top: 24px;
+}
+
+.tab-content-update-button button{
+	padding: 0px 8px;
+}
+
+.view-profile-update-notifications span {
+	text-transform: uppercase;
+	color: hsl(0,0%,46%);
+	font-weight: 500;
+}
+
+/* ===== REQUESTS CONTENT ===== */
+
+.view-profile-request-item{
+	padding-top: 24px;
+	padding-bottom: 16px;
+	border-bottom: 1px solid hsl(0,0%,80%);
+}
+
+.view-profile-request-item:first-child{
+	padding-top: 0px;
+}
+
+.view-profile-request-item:last-child{
+	padding-bottom: 0px;
+	border-bottom: 0px;
+}
+
+.view-profile-request-image {
+	margin-right: 16px;
+}
+
+.view-profile-request-image img{
+	display: block;
+}
+
+.view-profile-request-details {
+	-webkit-flex: 1;
+	flex:1;
+
+	display: -webkit-flex;
+	display: flex;
+
+ 	-webkit-justify-content: space-between; 
+    justify-content: space-between; 
+
+    -webkit-align-items: center; 
+  	align-items: center;
+}
+
+.view-profile-request-controls .spinner{
+	display: none;
+	font-size: 20px;
+	margin-right: 8px;
+}
+
+.view-profile-request-controls .user-profile-request-complete-icon{
+	/* check icon */
+	display: none;
+	opacity: 0;
+
+	margin-right: 6px;
+}
+
+
+/* ===== NO CONTENT FILLER ===== */
+
+.no-content-filler {
+	border-radius: 4px;
+}
+
+#groupsContent .no-content-filler {
+	margin-bottom: 24px;
+}
+
+
+
+
+
+/* simple modal media queries. These are contain desktop size styles */
+@media screen and (min-width: 768px){
+
+	/* ===== GROUP EDIT MODAL ===== */
+	
+	div[data-modal-id = "editUserModal"] .modal-content {
+		/*remove defaults*/
+		top:auto;
+		left:auto;
+		position: static;
+		-ms-transform: none;
+		-webkit-transform: none;
+			transform: none;
+
+		/*add your own*/
+		margin: 0px auto;
+		margin-top: 65px;
+		width: 500px;
+	}
+
+	div[data-modal-id = "editUserModal"] .modal-body{
+		padding: 0px;
+	}
+
+}
+
+@media screen and (min-width: 1024px){
+	
+	/* ===== GROUP EDIT MODAL ===== */
+
+	div[data-modal-id = "editUserModal"] .modal-content{
+		width: 500px;
+	}
+}

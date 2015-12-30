@@ -10,6 +10,19 @@ function SearchViewModel() {
 
 var searchWrapper = $("#search .dropdown-wrapper");
 self.groupQueryResults = ko.observable();
+self.query = ko.observable();
+
+self.focus = ko.observable(false);
+self.showClear = ko.observable(false);
+
+self.addFocus = function(){
+	self.focus(true);
+}
+
+self.clearSearch = function() {
+	self.query(null);
+	self.focus(true);
+}
 
 self.queryGroups = (function (){
 
@@ -29,7 +42,8 @@ self.queryGroups = (function (){
 		//clear queued request that has not been sent
 		clearTimeout(timer);
 
-		var queryString = $.trim(event.target.value);
+		//var queryString = $.trim(event.target.value);
+		var queryString = $.trim(self.query());
 		var pattern = constants.GROUP_NAME_REGEX;
 		
 		if (!pattern.test(queryString)) {
@@ -54,11 +68,12 @@ self.queryGroups = (function (){
 					if (!resp){
 						return false;
 					}
-					//add group thumbnail URL
+					//add group thumbnail URL and description preview
 					for(var i=0, len=resp.length; i<len; i++){
 						resp[i].image = helper.getImageURL(resp[i].image,
 														   constants.SEARCH_IMAGE,
 														   "group");
+						resp[i].descriptionPreview = getDescriptionPreview(resp[i].description);
 					}
 					self.groupQueryResults(null);
 					self.groupQueryResults(resp);
@@ -66,7 +81,7 @@ self.queryGroups = (function (){
 				},
 
 				error: function() {
-					console.log("error at group text search");
+					console.log("queryGroups:", "ERROR");
 				}
 			});	
 
@@ -74,8 +89,37 @@ self.queryGroups = (function (){
 
 	}; //end function being returned
 
-}());// end anon function	
+}());// end anon function
 
+self.query.subscribe(function(){
+	if (self.query()) {
+		//detected text input
+
+		//show 'clear' button if not there
+		if(!self.showClear()){
+			self.showClear(true);
+		}
+
+		//do search
+		self.queryGroups();
+	} else{
+		self.showClear(false);
+	}
+});
+
+// self.focus.subscribe(function()){
+	
+// }	
+
+function getDescriptionPreview(desc){
+	var previewLimit = constants.GROUP_DESCRIPTION_PREVIEW_CHAR_LIMIT;
+    if (desc.length <= previewLimit) {
+        return desc;
+    }
+    
+    var space = desc.lastIndexOf(" ", previewLimit);
+    return desc.substring(0, space) + "...";
+}
 
 }; //end view model
  

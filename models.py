@@ -9,7 +9,7 @@ from google.appengine.api import images
 from google.appengine.ext import blobstore
 
 from helper_functions import *
-from helper_operations import add_to_index
+from helper_operations import add_to_index, check_group_edit_allowed
 
 from constants import USERS_NAMESPACE
 from constants import MAX_POSTS_FETCHED, MAX_NOTIFICATIONS_FETCHED
@@ -26,16 +26,19 @@ class User(ndb.Model):
 	groups = ndb.KeyProperty(repeated = True, indexed = False)
 
 	@classmethod
-	def create_user(cls, user_id, display_name, email, blob):
+	def create_user(cls, user_id, display_name, email, blob_info):
 
+		# This raises exception which is handled at the calling Handler.
 		display_name = check_display_name(display_name)
 		
 		image_blob_key = None
-		if blob:
-			check_uploaded_image(blob)
+		if blob_info:
+
+			# This raises exception which is handled at the calling Handler.
+			check_uploaded_image(blob_info)
 
 			# means no bad image exception raised
-			image_blob_key = blob.key()
+			image_blob_key = blob_info.key()
 
 		new_user = User(id = user_id,
 						display_name = display_name,
@@ -52,33 +55,16 @@ class User(ndb.Model):
 		new_user.put()
 
 	@classmethod
-	def edit_user(cls, user_id, display_name, blob):
+	def edit_user(cls, user_id, display_name):
 
 		#check and sanitize display name
-		if display_name:
-			display_name = check_display_name(display_name)
-
-		image_blob_key = None
-		if blob:
-			check_uploaded_image(blob)
-			image_blob_key = blob.key()
+		display_name = check_display_name(display_name)
 
         #fetch user entity
 		user = User.get_by_id(user_id)
 
 		#update and save user according to the fields entered
-		if display_name:
-			user.display_name = display_name
-
-		if image_blob_key:
-			#delete the old blob and serving url if there
-			if user.image_blob:
-				images.delete_serving_url(user.image_blob)
-				blobstore.delete([user.image_blob])
-
-			#set new image properties
-			user.image_blob = image_blob_key
-			user.image_url = images.get_serving_url(image_blob_key)
+		user.display_name = display_name
 
 		user.put()
 		return True
@@ -324,46 +310,18 @@ class Group(ndb.Model):
 			return True
 
 	@classmethod
-	def edit_group(cls, user_key, group_id, description, blob):
+	def edit_group(cls, user_key, group_id, description):
 
 		group = Group.get_by_id(group_id)
 
-		allowed = False
-		if group.private:
-			# only admins are allowed to edit private groups
-			allowed = user_key in group.admins
-		else:
-			# only creator is allowed to edit the public group
-			allowed = user_key == group.creator
-		if not allowed:
+		if not check_group_edit_allowed(group, user_key):
 			return None
 
 		# extra check for most probable mistake post
-		if not blob and description == group.description:
+		if description == group.description or len(description) > GROUP_DESCRIPTION_CHAR_LIMIT:
 			return None
 
-		if description and not description.isspace() and len(description) <= GROUP_DESCRIPTION_CHAR_LIMIT:
-			group.description = description
-
-		blob_key = None
-		if blob:
-			check_uploaded_image(blob)
-			blob_key = blob.key()
-
-		if blob_key:
-			#delete old image if there
-			if group.cover_image_blob_key:
-
-				#stop serving the blob via image service
-				images.delete_serving_url(group.cover_image_blob_key)
-
-				#delete the blob from blobstore
-				blobstore.delete([group.cover_image_blob_key])
-
-			#update to newly uploaded
-			group.cover_image_blob_key = blob_key
-			group.cover_image_url = images.get_serving_url(blob_key)
-
+		group.description = description
 		group.put()
 		#update the search index document to contain latest image url or description
 		add_to_index(group_id, group.name, group.description, group.cover_image_url)
@@ -385,9 +343,9 @@ class Group(ndb.Model):
 
 		if group.private:
 			# check/del for existing admin request by the user in leaving group
-			req_key = PrivateRequest.test_existing_request(user_key, group_key, 'admin')
-			if req_key:
-				req_key.delete()
+			req = PrivateRequest.test_existing_request(user_key, group_key, 'admin')
+			if req:
+				req.key.delete()
 			
 			# if leaving user is also an admin
 			if user_key in group.admins:

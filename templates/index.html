@@ -1,11 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<title>Home</title>
-</head>
-<body>
-	<h1>Thought share!!</h1>
-	<a href="{{status_url}}">Login using your Google account</a>
-</body>
-</html>
+{% extends 'base.html' %}
+
+{% block title %}
+	<title>Thought Share</title>
+{% endblock %}
+
+{% block style_sheets %}
+	<!-- <link href='https://fonts.googleapis.com/css?family=Lato:300|Roboto' rel='stylesheet' type='text/css'> -->
+	<link rel="stylesheet" href="../stylesheets/index.css">
+{% endblock %}
+
+{% block content %}
+	<div id="contentWrapper">
+		<div id="largeText">
+			<span>Thought Share</span>
+		</div>
+		<div id="tagline">
+			<span>Build groups. Share thoughts.</span>
+		</div>
+
+		<div id="bar"></div>
+
+		<div id="googleSignup">
+			<a href="{{status_url}}"></a>
+		</div>
+	</div>
+{% endblock %}
+
+{% block scripts %}
+	<script type="text/javascript" src="../scripts/index.js"></script>
+{% endblock %}
+
