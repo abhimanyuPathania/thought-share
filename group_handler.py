@@ -23,13 +23,11 @@ class CreateGroupHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 		if not self.account:
 			return self.redirect('/')
 
-		image_upload_url = blobstore.create_upload_url('/create-group')
-		self.render('create_group.html', form_action = image_upload_url,
-										 description_limit = GROUP_DESCRIPTION_CHAR_LIMIT)
+		self.render('create_group.html', description_limit = GROUP_DESCRIPTION_CHAR_LIMIT)
 
 	def post(self):
-		if not self.user:
-			return self.redirect('/')
+		if not self.account:
+			return self.fail_ajax()
 
 		data = {'creator': self.user_key,
 				'name' : self.request.get('name'),
@@ -37,31 +35,36 @@ class CreateGroupHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
 				'private' : self.request.get('private')}
 
 		try:
-			cover_image_blob = self.get_uploads()[0]
+			cover_image_blob_info = self.get_uploads()[0]
 		#catch if user does not upload an image
 		except IndexError:
-			cover_image_blob = None
+			cover_image_blob_info = None
 
-		data['cover_image_blob'] = cover_image_blob
+		data['cover_image_blob_info'] = cover_image_blob_info
+		
 		try:
 			new_group_key = Group.create_group(**data)	
+		
 		# invalid group name, or group with the same name already exsits
 		except (BadUserInputError, EntityExistsError) as e:
+			
 			#delete the blob if uploaded
-			if cover_image_blob:
-				blobstore.delete([cover_image_blob.key()])
-			return self.redirect("/create-group")
+			if cover_image_blob_info:
+				blobstore.delete([cover_image_blob_info.key()])
+			
+			return self.fail_ajax(e.value)
 
 		#if blob is too big or not an image type
 		except BadImageError as e:
+			
 			#delete the incorrect blob uploaded
-			blobstore.delete([cover_image_blob.key()])
+			blobstore.delete([cover_image_blob_info.key()])
 
-			return self.redirect("/create-group")
+			return self.fail_ajax(e.value)
 
 		#!!!!!catch datastore put exceptions here
 		group_url = '/group/' + new_group_key.id()
-		return self.redirect(group_url)
+		return self.render_json(group_url)
 
 class GroupLandingPageHandler(Handler):
 	# /group/(group_id)

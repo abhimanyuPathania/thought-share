@@ -33,12 +33,12 @@ enableForms.setupNameField($(".material-name-field"), "DISPLAY");
 
 self.createUser = function (form) {
 	
-	var image = fileInput.prop("files");
+	//var image = fileInput.prop("files");
 	var data = new FormData(createUserForm[0]);
 
 	// Check for the form submitted via 'return' key
 	if (!self.enableSubmit()) {
-		console.log("inavalid submit");
+		console.log("Inavalid submit");
 		return false;
 	}
 
@@ -58,8 +58,6 @@ self.createUser = function (form) {
 				console.log("ERROR:", "unable to fetch blobstore URL");
 				return;
 			}
-
-			console.log("uploadUrl", uploadUrl);
 
 			//CREATE USER
 			$.ajax({

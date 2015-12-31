@@ -19,25 +19,32 @@
 {% block user_content %}
 	<div id="formWrapper" class="card">
 		<h4>Create A New Group</h4>
-		<form id= "createGroupForm" method="POST" action="{{form_action}}" enctype="multipart/form-data">
+		<form id= "createGroupForm" method="POST" enctype="multipart/form-data" data-bind=" submit : createGroup">
 			<div class="padding-wrapper">
 				
-			
-				<div class="form-field material-input-wrapper material-name-field">
+				<div class="form-field material-input-wrapper material-name-field" data-bind ="
+					css : { error: groupNameError },
+					shakeGroupNameField : shakeGroupNameInput
+				">
 					
 					<div class="material-input-group">
-						<input type="text" name="name" value="{{name}}">
+						<input type="text" name="name" data-bind="
+							event : { 
+								input : checkNameAvailability, 
+								blur : checkNameInput
+							}
+						">
 						<span class="bar"></span>
 						<label>Group Name</label>
 
-						<div class="guide">
+						<div class="guide" data-bind = "hideGroupNameGuide : hideGroupNameGuide">
 							<span>Only numbers, alphabets and spaces are allowed. Group name cannot be changed later.</span>
 						</div>
 						
-						<div id="nameAvailable" data-name-available="">
+						<div id="nameAvailable" data-name-available="" data-bind=" expandInOut: showAvailability">
 							<div class="center-content-vertically">
-								<i class="material-icons">check_circle</i>
-								<span></span>
+								<i class="material-icons" data-bind="text : groupNameAvailableIcon"></i>
+								<span data-bind="text : groupNameAvailableText"></span>
 							</div>
 						</div>
 					</div>			
@@ -45,7 +52,7 @@
 
 				<div class="form-field material-input-wrapper material-description-field">
 					<div class="material-input-group">
-						<textarea class="material-textarea" rows="1" name="description">{{description}}</textarea>
+						<textarea class="material-textarea" rows="1" name="description" data-bind = "event : { input : checkDescription }"></textarea>
 						<span class="bar"></span>
 						<label>Group description</label>
 
@@ -56,7 +63,7 @@
 					</div>								
 				</div>
 				
-				<div class="form-field material-image-upload" id="imageField">
+				<div class="form-field material-image-upload">
 				<!-- this is the imageWrapper div as used as hook in enableForms.js-->
 
 					<div class="flex-wrapper">
@@ -80,31 +87,30 @@
 				</div>
 
 
-				<div class="form-field" id="makePrivate">
+				<div class="form-field" id="makePrivate" data-bind="css : { active : checkbox }">
 					<div class="center-content-vertically">
 						<label>Make private</label>
-						<div class="checkbox-icons">
-							<span class="unchecked"><i class="material-icons">check_box_outline_blank</i></span>
-							<span class="checked"><i class="material-icons">check_box</i></span>	
+						<div class="checkbox-icons" data-bind="
+							event : { click : updateCheckbox },
+							animateCheckbox : checkbox
+						">
+							<span class="unchecked-state"><i class="material-icons">check_box_outline_blank</i></span>
+							<span class="checked-state"><i class="material-icons">check_box</i></span>
 						</div>
 					</div>
 
-					<div class="status-icons">
-					 	<span title="public group" class="public"><i class="material-icons">public</i></span>			
-						<span title="private group" class="private"><i class="material-icons ">vpn_lock</i></span>
+					<div class="status-icons" data-bind=" animateCheckbox : checkbox ">
+					 	<span title="public group" class="unchecked-state"><i class="material-icons">public</i></span>			
+						<span title="private group" class="checked-state"><i class="material-icons ">vpn_lock</i></span>
 					</div>				
 
-					<input type="checkbox" name="private">
+					<input type="checkbox" name="private" data-bind=" checked : checkbox">
 				</div>
 			</div> <!-- END PADDING WRAPPER -->
 
 			<div class="form-control-wrapper">
-				<div id="error">
-					<span>{{error}}</span>
-				</div>
-				
 				<div class="form-field" id="submit">
-					<button type="submit" class="btn-normal">Create Group</button>
+					<button type="submit" class="btn-normal" data-bind= " enable : enableSubmit">Create Group</button>
 				</div>
 			</div>
 		</form>

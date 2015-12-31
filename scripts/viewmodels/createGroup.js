@@ -1,49 +1,114 @@
-define(['jquery',
+define(['knockout',
+		'jquery',
 		'enableForms',
 		'constants',
 		'velocity',
 		'velocity-ui'], 
-function($, enableForms, constants, Velocity){
+function( ko, $, enableForms, constants, Velocity ){
 
-return function() {
+return function CreateGroupViewModel() {
 
-var createGroupForm = $("#createGroupForm");
+var self = this;
+
+//set parent to null for the component usage on non-feed pages
+self.parentRef = null;
+
+//var createGroupForm = $("#createGroupForm");
 var textarea = $(".material-description-field textarea");
-
-var nameInput = $("input[type=text]", createGroupForm);
-var nameAvailableDiv = $("#nameAvailable");
-var naveAvailableIcon = $("#nameAvailable i");
-var naveAvailableText = $("#nameAvailable span");
-var nameGuide = $(".material-name-field .guide");
-
-var privateCheckBox = $("#makePrivate input")
-var checkboxIconDiv = $(".checkbox-icons");
-//cache selectors for checkbox animations
-var checkboxChecked = $(".checked", checkboxIconDiv);
-var checkboxUnchecked = $(".unchecked", checkboxIconDiv);
-var publicIcon = $("#makePrivate .status-icons .public");
-var privateIcon = $("#makePrivate .status-icons .private");
-
+var nameInput = $(".material-name-field input[type=text]");
 var inputList = textarea.add(nameInput);
-var formFields = $(".form-field");
-
-var errorDiv = $("#error");
-var displayError = $("span", errorDiv);
-
+var checkboxIconDiv = $(".checkbox-icons");
 var imageMetadata = {
 	"url": constants.DEFAULT_GROUP_IMAGE,
 	"size": constants.CREATE_GROUP_IMAGE_UPLOAD_PREVIEW_IMAGE
 }
 
+enableForms.setupInputGuidesAndLabels(inputList);
+enableForms.setupDescriptionField( $(".material-description-field") );
+enableForms.setupImageUploadField( $(".material-image-upload"), imageMetadata );
+
+// Tracks UI display of nameAvailableDiv - Boolean
+self.showAvailability = ko.observable();
+
+// Result of AJAX call to check availability of group name - Boolean
+self.groupNameAvailable = ko.observable();
+
+// nameAvailableDiv span text - String / Text binding
+self.groupNameAvailableText = ko.pureComputed( function() {
+	var available = self.groupNameAvailable();
+	return available ? "Group name available" : "Group name not available";
+});
+
+// nameAvailableDiv icon - String / Text binding
+self.groupNameAvailableIcon = ko.pureComputed( function() {
+	var available = self.groupNameAvailable();
+	return available ? "check_circle" : "cancel"; 
+});
+
+// observable to add remove error class on group name form field - Boolean
+self.groupNameError = ko.observable();
+
+// trigger shake animation for the group name input - Boolean always notified.
+self.shakeGroupNameInput = ko.observable().extend({ notify: 'always' });
+
+// Hide guide span for the group name input - Boolean always notified.
+self.hideGroupNameGuide = ko.observable().extend({ notify: 'always' });
+
+// Tracks result of description validation - Boolean.
+self.descriptionTest = ko.observable();
+
+// Tracks checkbox state - Boolean.
+self.checkbox = ko.observable(null);
+
+// Extra observable to programatically disable submit button - Boolean
+self.controlEnableSubmit = ko.observable(true);
+
+// Enables submit button
+self.enableSubmit = ko.pureComputed( function() {
+	var available = self.groupNameAvailable();
+	var description = self.descriptionTest();
+	var control = self.controlEnableSubmit();
+
+	// Only submit when user has valid group name and description.
+	// Image upload and making private fields are optional.
+	return available && description && control;
+
+});
 
 
-var checkNameAvailability =  (function (){
+self.updateCheckbox = function(data, event) {
+	
+	//if last animation is not complete, return
+	if ( $(".velocity-animating", checkboxIconDiv).length ) {
+		return;
+	}
+
+	// reverse the checkbox status
+	self.checkbox(!self.checkbox());	
+}
+
+self.checkDescription = function(data, event) {
+	// on input - textarea
+
+	var descriptionLength = $(event.target).val().length;
+	var descriptionLimit = constants.GROUP_DESCRIPTION_CHAR_LIMIT;
+
+	if ( !descriptionLength || descriptionLength > descriptionLimit ) {
+		self.descriptionTest(false);
+		return;
+	}
+
+	self.descriptionTest(true);
+};
+
+
+self.checkNameAvailability =  (function (){
 
 	//closure variables to keep track of requests
 	var activeRequest;
 	var timer;
 
-	return function(event) {
+	return function(data, event) {
 		
 		//both the checks below must happen before we test for new pattern
 
@@ -55,22 +120,17 @@ var checkNameAvailability =  (function (){
 		//clear queued request that has not been sent
 		clearTimeout(timer);
 
-		var queryString = $.trim(event.target.value);
+		var queryString = $.trim( $(event.target).val() );
 		var pattern = constants.GROUP_NAME_REGEX;
-		var inputFormField = formFields.eq(0);
 
 		if (!pattern.test(queryString)) {
-			var display = nameAvailableDiv.css("display");	
-			nameAvailableDiv.attr("data-name-available", "");
 
-			if (display == "inline-block" || display == "block") {
-				nameAvailableDiv.velocity("transition.expandOut", {
-					duration: 300
-				});
-			}
-
-			return false;
+			// hide the name available div and set name available to false
+			self.groupNameAvailable(false);
+			self.showAvailability(false);
+			return;
 		}
+
 		// if we come till here that means now we have something to query for
 
 		//set request to query for the current queryString
@@ -95,227 +155,106 @@ var checkNameAvailability =  (function (){
 					}
 					// if we don't get any resp that means name is available
 					
-					if(available) {
-						//set the feed back and an additional data-attribute to
-						//test during form submission
-						if (nameAvailableDiv.attr("data-name-available") != "yes") {
-							naveAvailableText.text("Group name available");
-							naveAvailableIcon.text("check_circle");
-							nameAvailableDiv.attr("data-name-available", "yes");
-
-							inputFormField.removeClass("error");
-						}
-						
-					} else {
-						
-						if (nameAvailableDiv.attr("data-name-available") != "no") {
-							naveAvailableText.text("Group name not available");
-							naveAvailableIcon.text("cancel");
-							nameAvailableDiv.attr("data-name-available", "no");
-
-							inputFormField.addClass("error");
-						}						
-					}
-
-					//only animate if not visible
-					if (nameAvailableDiv.css("display") == "none"){
-						nameAvailableDiv.velocity("transition.expandIn", {
-							duration: 300
-						});
-					}			
+					self.groupNameAvailable(available);
+					self.groupNameError(!available);
+					self.showAvailability(true);			
 				},
 
 				error: function() {
-					console.log("error at group text search");
-					nameAvailableDiv.attr("data-name-available", "no");
+					console.log("error: checkNameAvailability");
+					self.groupNameAvailable(false);
 				}
 			});	
 
-		}, 800) //call after xyz milli seconds
+		}, 600) //call after xyz milli seconds
 
 	}; //end function being returned
 
 }());// end anon function
 
-//events are attached here since checkNameAvailability is declared as a var
-createGroupForm.submit(checkForm);
-
-enableForms.setupInputGuidesAndLabels(inputList);
-enableForms.setupDescriptionField(formFields.eq(1));
-enableForms.setupImageUploadField(formFields.eq(2), imageMetadata);
-
-//not using enableForms for name input
-nameInput.on("input", checkNameAvailability);
-nameInput.on("blur", checkNameInput);
-
-checkboxIconDiv.click(updateCheckbox);
-
-function updateCheckbox() {
-	var checkboxIconShow, checkboxIconHide
-	var statusIconShow, statusIconHide
-
-	//if last animation is not complete, return
-	if ( $(".velocity-animating", checkboxIconDiv).length ) {
-		return;
-	}
-
-	if (privateCheckBox.prop("checked")) {
-		//set the show/hide icons to be animated
-		checkboxIconShow = checkboxUnchecked;
-		checkboxIconHide = checkboxChecked;
-
-		statusIconShow = publicIcon;
-		statusIconHide = privateIcon;
-
-		//change the checkbox state
-		privateCheckBox.prop("checked", false);
-	} else {
-		checkboxIconShow = checkboxChecked;
-		checkboxIconHide = checkboxUnchecked;
-
-		statusIconShow = privateIcon;
-		statusIconHide = publicIcon;
-
-		privateCheckBox.prop("checked", true);
-	}
-
-	checkboxIconHide.velocity("transition.expandOut", {
-		duration: 100,
-		complete: function() {
-			checkboxIconShow.velocity("transition.expandIn", {
-				duration: 200,
-				display: "block"
-			});
-		}
-	});
-
-	statusIconHide.velocity("transition.flipXOut", {
-		duration: 100,
-		complete: function() {
-			statusIconShow.velocity("transition.flipXIn", {
-				duration: 200,
-				display:"block"
-			});
-		}
-	});
+self.checkNameInput = function() {
 	
-	var makePrivateFormField = formFields.eq(3);
-	if (privateCheckBox.prop("checked")) {
-		makePrivateFormField.addClass("active");
-	} else {
-		makePrivateFormField.removeClass("active");
-	}
+	// If the showAvailability div is not visible(false), that means either
+	// the pattern test has failed or user has no input
 	
-}
+	var available = self.groupNameAvailable();
+	var show = self.showAvailability();
 
+	if ( available === false ) {
 
-function checkNameInput() {
-	var pattern = constants.GROUP_NAME_REGEX;
-	var inputFormField = formFields.eq(0);
-	var materialInput = $("input", inputFormField);
-	var name = nameInput.val();
+		// add error class if input is invalid/blank or group name is taken
+		self.groupNameError(true);
+		self.shakeGroupNameInput(true);
 
-	//when user emptys the input; remove error class and hide the guide
-	if (!name) {
-		inputFormField.removeClass("error");
-		hideGuide();
-		return;
-	}
-
-	//if input is invalid or group name is taken, add error class and animate shake
-	// don't hide guide in this case
-	if (!pattern.test(name) || (nameAvailableDiv.attr("data-name-available") == "no")) {	
-		inputFormField.addClass("error");
-		inputFormField.velocity("callout.shake", {
-			duration: 500
-		});
-
-		if (pattern.test(name) && nameAvailableDiv.attr("data-name-available") == "no") {
-			//hide the input name guide if only group name is not available
-			hideGuide();
-		}
-
-		return;
-	}
-
-	// if input is correct, just hide the guide
-	hideGuide();
-
-	function hideGuide() {
-		nameGuide.velocity("transition.slideUpOut", {
-			duration: 300,
-			display: null
-		});
+		if ( show ) {
+			// If input is valid but group name is taken, hide guide for better UI response
+			self.hideGroupNameGuide(true); 
+		}		
+	} else {
+		// valid input and name is available; just hide the guide
+		self.hideGroupNameGuide(true);
 	}
 }
 
-
-
-function showError() {
-
-	errorDiv.velocity("transition.expandIn", {
-		duration: 300,
-		complete: function() {
-			errorDiv.velocity("callout.pulse", {
-				duration: 300
-			});
-		}
-	});
-}
-
-//event handlers
-function checkForm(e) {
-
-	var nameInputFormField = formFields.eq(0);
-	var descFormField = formFields.eq(1);
-
-	var name = $.trim(nameInput.val());
-	var description = $.trim(textarea.val());
-	var pattern = constants.GROUP_NAME_REGEX;
-
-	var cancelSubmission = false;
-
-	if (description.length > constants.GROUP_DESCRIPTION_CHAR_LIMIT){
-		displayError.text("Group description exceeds " + constants.GROUP_DESCRIPTION_CHAR_LIMIT + " characters");
-		cancelSubmission = true;
-		descFormField.addClass("error");
-	}
-
-	if (description.length === 0){
-		displayError.text("Group description is required.");
-		cancelSubmission = true;
-		descFormField.addClass("error");
-	}
-
-		if (!pattern.test(name)){
-		var errorText = "Invalid group name.";
-
-		if (name.length === 0) {
-			errorText = "Group name is required.";
-		}
-
-		displayError.text(errorText);
-		nameInputFormField.addClass("error");
-		cancelSubmission = true;
-	}
-
-	if (nameAvailableDiv.attr("data-name-available") === "no"){
-		// no need to display message here
-		nameInputFormField.addClass("error");
-		cancelSubmission = true;
-	}
-
-
-	// after all the tests check if form is to be submitted
-	if (cancelSubmission) {
-		e.preventDefault();
-		showError();
-
+self.createGroup = function (form) {
+	
+	// Check for the form submitted via 'return' key
+	if (!self.enableSubmit()) {
+		console.log("Inavalid submit");
 		return false;
 	}
 
-	// submit the form if it passes all the tests
-	return true; 
+	var formData = new FormData(form);
+	
+	//first send request to get blobstore upload url
+	$.ajax({
+		dataType: "json",
+		url: "/ajax/get-image-upload-url",
+		data: {"target_url": "/create-group"},
+		
+		beforeSend: function () {
+			// Disable submit button
+			self.controlEnableSubmit(false);
+		},
+
+		//on getting back upload url, make the next request
+		success: function(uploadUrl) {
+			
+			if (!uploadUrl) {
+				console.log("ERROR:", "unable to fetch blobstore URL");
+				return;
+			}
+
+			//CREATE GROUP
+			$.ajax({
+			    url: uploadUrl,
+			    type: 'POST',
+			    data: formData,
+			    cache: false,
+			    contentType: false,
+			    processData: false,
+			    success: function(resp){
+			        if (!resp) {
+			        	return;
+			        }
+
+			        // Redirect to group landing page on success
+			        // add delay here?
+			        location.href = resp;
+			    },
+
+			    error: function(xhr) {
+			    	console.log("ERROR:", "Unable to create group.", xhr.responseText);
+			    }
+			});//end inner ajax
+
+		}, // end outer ajax success
+
+		error: function() {
+			console.log("ERROR:", "unable to fetch blobstore URL");
+		} // end outer ajax error
+
+	});//end ajax
 }
 
 

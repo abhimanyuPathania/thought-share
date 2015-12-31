@@ -3,8 +3,9 @@ define(['knockout',
 		'jquery',
 		'helper',
 		'constants',
-		'velocity'],
-function(ko, $, helper, constants, Velocity, autosize) {
+		'velocity',
+		'velocity-ui'],
+function( ko, $, helper, constants, Velocity ) {
    
 	ko.bindingHandlers.styleCurrentGroup = {
 	    init: function(element, valueAccessor, allBindings, viewModel, bindingContext) {

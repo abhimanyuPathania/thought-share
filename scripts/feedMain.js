@@ -27,7 +27,7 @@ require(
 	 'components/navbar_modular/navbarModViewModel',
      'components/hot_groups/hotGroupsViewModel',
 	 'libs/domReady!',
-     'customBindings'],
+     'custom_bindings/feedPageCustomBindings'],
 	function(ko, feedPageViewModel, navbarCompObj, hotGroupsCompObj) {
 		ko.components.register('navbar-modular', navbarCompObj);
         ko.components.register('hot-groups', hotGroupsCompObj);

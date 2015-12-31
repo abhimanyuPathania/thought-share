@@ -97,7 +97,6 @@ class PrivateRequest(ndb.Model):
 		new_request.put()
 		return True
 
-	#put this in a transaction
 	@classmethod
 	@ndb.transactional(xg=True)
 	def complete_request(cls, admin_id, req):
@@ -221,40 +220,43 @@ class Group(ndb.Model):
 	members = ndb.KeyProperty (kind = User, repeated = True)
 	members_number = ndb.ComputedProperty(lambda self: len(self.members))
 
+	# put this in a transaction
 	@classmethod
-	def create_group(cls, name, description, creator, private, cover_image_blob):
+	def create_group(cls, name, description, creator, private, cover_image_blob_info):
 		
-		#first test for group name regular expression
-		#raises BadUserInputError on faliure
+		# first test for group name regular expression
+		# raises BadUserInputError on faliure
 		name_test = check_group_name(name)
 
-		#check if description is blank
+		# check if description is blank
 		if not description or description.isspace():
 			raise BadUserInputError('please enter group description')
 
 		if len(description) > GROUP_DESCRIPTION_CHAR_LIMIT:
 			raise BadUserInputError('group description exceeds limit')
 
-		#get sanitized group name/id
+		# get sanitized group name/id
 		group_name = sanitize_group_name(name)
 		group_id = get_group_id(group_name)
 
-		#test for availability of group name
+		# test for availability of group name
 		availability_test = Group.get_by_id(group_id)
 
 		if availability_test:
 			raise EntityExistsError('Group name taken')
 
-		#test for uploaded blob
+		# test for uploaded blob
 		cover_image_blob_key = None
-		if cover_image_blob:
-			check_uploaded_image(cover_image_blob)
-			cover_image_blob_key = cover_image_blob.key()
+		if cover_image_blob_info:
+			check_uploaded_image(cover_image_blob_info)
+			cover_image_blob_key = cover_image_blob_info.key()
 
 		creator_user = creator.get()
 		new_group_key = ndb.Key(Group, group_id)
+		
 		if name_test and not availability_test:
-			#cosmetic if statement
+			# cosmetic if statement
+
 			new_group = Group(id = group_id,
 								name = group_name,
 								description = description,
@@ -267,7 +269,8 @@ class Group(ndb.Model):
 					creator_user.admin_groups.append(new_group_key)
 
 			if cover_image_blob_key:
-				#add cover image fields if image uploaded
+				
+				# add cover image fields if image uploaded
 				new_group.cover_image_blob_key = cover_image_blob_key
 				new_group.cover_image_url = images.get_serving_url(cover_image_blob_key)
 			

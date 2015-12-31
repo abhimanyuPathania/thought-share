@@ -23,18 +23,10 @@ require(
 	['knockout',
 	 'viewmodels/createGroup',
 	 'components/navbar_modular/navbarModViewModel',
-	 'libs/domReady!'],
-	function(ko, setupCreateGroupPage, navbarCompObj) {
-		
-		//create dummy view model only to supply null 'parentRef' to navbar component
-		function CreateGroupViewModel() {
-			//set parent to null for the component usage on non-feed pages
-			this.parentRef = null;
-		}
+	 'libs/domReady!',
+	 'custom_bindings/createGroupCustomBindings'],
+	function(ko, CreateGroupViewModel, navbarCompObj) {
 		
 		ko.components.register('navbar-modular', navbarCompObj);
 		ko.applyBindings(new CreateGroupViewModel());
-
-		//call the base script
-		setupCreateGroupPage();
 });

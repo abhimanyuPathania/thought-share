@@ -152,8 +152,8 @@
 	cursor: context-menu;
 }
 
-#makePrivate .checkbox-icons span.checked,
-#makePrivate .status-icons span.private{
+#makePrivate .checkbox-icons span.checked-state,
+#makePrivate .status-icons span.checked-state{
 	display: none;
 }
 
