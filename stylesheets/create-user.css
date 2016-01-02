@@ -51,8 +51,9 @@
 
 	-webkit-justify-content: space-between; 
     justify-content: space-between;
-
-    /* margin-bottom: 8px; */
+	
+	/* align with placeholders of material inputs */
+    margin-left: 4px;
 }
 
 
