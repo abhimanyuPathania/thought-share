@@ -1,2 +1,4 @@
-# thought-share
-Simple social network built using Google App Engine and KnockoutJS
+# Thought Share
+Simple social network built using Google App Engine and KnockoutJS.
+
+Coming soon....
