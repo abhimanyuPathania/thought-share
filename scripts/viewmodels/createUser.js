@@ -16,6 +16,7 @@ var displayNameInput = $("input[type=text]", createUserForm);
 var fileInput = $("input[type=file]", createUserForm);
 var displayNamePattern = constants.DISPLAY_NAME_REGEX;
 
+
 var imageMetadata = {
 	"url": constants.DEFAULT_USER_IMAGE,
 	"size": constants.CREATE_USER_IMAGE_UPLOAD_PREVIEW_IMAGE
@@ -49,6 +50,8 @@ self.createUser = function (form) {
 		data: {"target_url": "/"},
 		
 		beforeSend: function () {
+			// Disable the submit button before sending AJAX request
+			self.enableSubmit(false)
 		},
 
 		//on getting back upload url, make the next request
