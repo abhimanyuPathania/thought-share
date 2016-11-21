@@ -23,8 +23,14 @@ handlers:
   static_files: images/\1
   upload: images/.*
 
+- url: /admin/?.*?
+  script: admin.app
+  secure: always
+  login: admin
+
 - url: .*
   script: main.app
+  secure: always
 
 libraries:
 - name: webapp2

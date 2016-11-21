@@ -17,6 +17,17 @@ from helper_operations import check_user_warm_cache
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape=True)
 
+    
+# webapp2.RequestHandler.__init__ calls webapp2.RequestHandler.initialize(self.initialize)
+# So instead of overriding __init__ method, we can override the initialize.
+
+# So the initialize method defined in Handler class get called by the __init__ method of 
+# webapp2.RequestHandler class. Then, the Handler class' initialize at beginning calls 
+# the webapp2.RequestHandler.initialize method which adds the basic 'request', 'response' and 'app'
+# properties to object(self). Then we proceed to add our custom properties.
+
+# initialize method will be called at every URL request the app routes.
+
 class Handler(webapp2.RequestHandler):
     
 	def initialize(self, *a, **kw):
@@ -64,15 +75,15 @@ class Handler(webapp2.RequestHandler):
 		self.response.status_int = 400;
 		self.write(response_text)
 
-	def delayed_redirect(self, url=None, message=None, delay=None):
-		if url==None:
-			url = "http://www.linkiful.appspot.com"
-		if message == None:
-			message = "Some thing went wrong. Please try later\nRedirecting. . . . ."
-		if delay == None:
-			delay = str(3)
+	# def delayed_redirect(self, url=None, message=None, delay=None):
+	# 	if url==None:
+	# 		url = "http://www.linkiful.appspot.com"
+	# 	if message == None:
+	# 		message = "Some thing went wrong. Please try later\nRedirecting. . . . ."
+	# 	if delay == None:
+	# 		delay = str(3)
 
-		self.render('redirect.html', redirect_url = url,
-									redirect_message = message,
-									redirect_delay = delay)
+	# 	self.render('redirect.html', redirect_url = url,
+	# 								redirect_message = message,
+	# 								redirect_delay = delay)
 

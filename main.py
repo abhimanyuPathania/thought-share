@@ -23,6 +23,7 @@ from helper_functions import BadUserInputError, BadImageError
 from helper_operations import search_index
 
 class LandingPageHandler(Handler, blobstore_handlers.BlobstoreUploadHandler):
+    
     def get(self):
     	if not self.user:
     		return self.render('index.html')

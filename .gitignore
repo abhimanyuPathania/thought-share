@@ -1,0 +1,11 @@
+
+# general things to ignore
+scripts/[L]egacy
+
+# python related files to ignore
+*.egg-info/
+*.egg
+*.eggs/
+*.py[cod]
+__pycache__/
+*.so

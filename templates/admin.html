@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}
+	<title>Thought Share || ADMIN</title>
+{% endblock %}
+
+{% block style_sheets %}
+	<!-- <link href='https://fonts.googleapis.com/css?family=Lato:300|Roboto' rel='stylesheet' type='text/css'> -->
+	<link rel="stylesheet" href="../stylesheets/admin.css">
+{% endblock %}
+
+{% block content %}
+	<div id="content-wrapper">
+		<div id="header">
+			<h1>Welcome Admin</h1>
+			<a href="{{status_url}}">Logout</a>
+		</div>	
+
+		<div class="admin-task">
+			<h2 class="admin-task-heading">Hard Resest</h2>
+			<div class="admin-task-description">
+				<span>Clears datastore, search indexes, blobstore and memcache</span>
+			</div>
+			
+			<div>
+				<button type="button" id="hard-reset-button" class="admin-task-button"
+					data-bind = "click: executeHardReset">
+					HARD RESET
+				</button>
+				<p data-bind="text: hardResetMessage"></p>
+			</div>
+
+		</div>
+	</div>
+{% endblock %}
+
+{% block scripts %}
+	<script type="text/javascript" data-main="../scripts/adminMain" src="../scripts/libs/require.js"></script>
+{% endblock %}
+

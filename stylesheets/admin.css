@@ -1,0 +1,42 @@
+*{
+	padding: 0;
+	margin: 0;
+}
+
+*, *:before, *:after {
+  -webkit-box-sizing: border-box; 
+  	 -moz-box-sizing: border-box; 
+  		  box-sizing: border-box;
+}
+
+html {
+    -ms-text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+}
+
+body{
+	font-family: 'Roboto', sans-serif; 
+	font-weight: 400;
+
+	-moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+
+    /* this grey is 80% black */
+	color: hsl(0, 0%, 20%);
+	background-color: #F1F1F1;
+	
+}
+
+
+#content-wrapper {
+	width: 80%;
+	margin: 40px auto;
+}
+
+#header {
+	margin-bottom: 30px;
+}
+
+.admin-task-heading{
+	margin-bottom: 10px;
+}
