@@ -37,6 +37,10 @@ body{
 	margin-bottom: 30px;
 }
 
+#header a{
+	margin-right: 10px;
+}
+
 .admin-task-heading{
 	margin-bottom: 10px;
 }
