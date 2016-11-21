@@ -61,12 +61,15 @@
 	text-align: center;
 }
 
+/* Display Name */
 #userInfo h3 {
 	margin-bottom: 12px;
+	text-transform: none;
 }
 
+/* email */
 #userInfo p{
-	font-size: 16px;
+	font-size: 14px;
 	margin-bottom: 24px;
 }
 
