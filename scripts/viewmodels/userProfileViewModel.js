@@ -103,8 +103,6 @@ deletePostModalButton.on("click", deletePost);
 
 
 self.submitUserEdit = function(form) {
-	console.log("updateing displayName");
-	//return;
 	var name = $.trim(displayNameInput.val());
 	if (!constants.DISPLAY_NAME_REGEX.test(name)) {
 		return false;
@@ -225,6 +223,7 @@ self.groups = {
 	})
 };
 
+
 self.posts = {
 	postArray : ko.observableArray(),
 	more : ko.observable(),
@@ -241,7 +240,6 @@ self.posts = {
 
 		// Only show filler div when user does not has posts in ViewModel and
 		// in datastore itself.
-
 		return postArray.length === 0 && !more;
 	})
 };
@@ -290,6 +288,8 @@ self.requests = {
 		return requestArray.length === 0 && !more;
 	})
 };
+
+
 
 self.changeTab = function(tabName) {
 	location.hash = tabName;
@@ -400,7 +400,6 @@ function deletePost() {
 
 					// disable the delete button again
 					deletePostModalButton.prop("disabled", true);
-					console.log(self.posts.postArray());
 				}
 			});
 			
@@ -576,12 +575,11 @@ self.completeRequest = function(req, event) {
 
 		success: function(resp) {
 			// on success we just update our view and remove that notification
-			console.log("success start", resp);
+			
 			if (!resp) {
 				return;
 			}
 
-			console.log("success animation");
 			// fade out the spinner
 			spinner.velocity("transition.fadeOut", {
 				duration: 300,
@@ -660,7 +658,7 @@ function removeRequestFromComponent(req) {
 }
 
 function getUserRequests(update) {
-
+	
 	var dataSent = {"view" : "requests",
 					"cursor_str": null};
 
@@ -833,7 +831,6 @@ function handleAjaxBeforeSend(update) {
 }
 
 function handleAjaxComplete(tab, update) {
-	//console.log("handleAjaxComplete:", location.hash);
 
 	/* 
 		Height animation is only used during first fetch.
@@ -958,7 +955,6 @@ function setupAfterFirstCall(tab) {
 
 function animateTabs(previous, current) {
 	
-	//console.log("previous:", previous, "current:", current);
 	var barDuration = 300;
 	var contentDuration = barDuration/2;
 	var previousTab = self.tabData[previous];
@@ -1059,10 +1055,7 @@ Sammy(function() {
 			// this is the call for first case; rest calls are made from animateTabs
 			// to queue the tabAction and and animateTabs height animation
 			self.tabAction[tabSelected]();
-		}
-
-		
-        	
+		}	    	
     });
 
     this.get('/view-profile', function() {
