@@ -87,13 +87,13 @@ class CreatingAccountUrlHandler(Handler):
         return self.render_json(upload_url)
         	
 
-class DatastoreHandler(Handler):
-    def get(self):
-        user = self.user_key.get()
-        result_tuple = PrivateRequest.fetch_requests(user.admin_groups, None, True)
+# class DatastoreHandler(Handler):
+#     def get(self):
+#         user = self.user_key.get()
+#         result_tuple = PrivateRequest.fetch_requests(user.admin_groups, None, True)
 
-        self.render('datastore.html', result = result_tuple[0],
-                                      result2 = result_tuple[1])
+#         self.render('datastore.html', result = result_tuple[0],
+#                                       result2 = result_tuple[1])
         
 
 app = webapp2.WSGIApplication([
@@ -125,7 +125,6 @@ app = webapp2.WSGIApplication([
     ('/ajax/upload-image', UploadImageHandler),
     ('/ajax/get-image-upload-url', GetImageUploadUrlHandler),
     ('/ajax/get-creating-account-url', CreatingAccountUrlHandler),  
-    ('/ajax/widget/hot-groups', HotGroupsHandler),
-    ('/datastore', DatastoreHandler)
+    ('/ajax/widget/hot-groups', HotGroupsHandler)
 ], debug=True)   
 
