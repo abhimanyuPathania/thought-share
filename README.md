@@ -1,5 +1,7 @@
-# Thought Share
+# [Thought Share](https://thought-share.appspot.com/)
 > A simple social network
+
+https://thought-share.appspot.com
 
 ## Some features
 * Build user profiles with custom profile pictures.
@@ -11,7 +13,7 @@
 * Requests for joining/adminship of private groups.
 * Nice clean user interface inspired from Google's Material UI.
 
-*Please note that Thought Share is still under development. Currently, you can sign-up only via your Google account.*
+*Please note that [Thought Share](https://thought-share.appspot.com) is still under development. Currently, you can sign-up only via your Google account.*
 
 
 ## Tech-stack used (for developers)
