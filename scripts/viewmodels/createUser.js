@@ -94,7 +94,8 @@ self.createUser = function (form) {
 }
 
 self.logoutUser = function(data, event) {
-	var logoutUrl = $(event.target).attr("data-logout-url"); 
+	// event target is the inner icon
+	var logoutUrl = $(event.target).closest("button").attr("data-logout-url"); 
 	location.href = logoutUrl;
 }
 
